@@ -46,13 +46,14 @@ FORCA BRUTA
 #include <io.h>
 
 /***************  Definicao de numero de equacoes  ********************/
-#include "Nequ_config.h"
+#include "_config_modelo/Nequ_config.h"
 /**********************************************************************/
 
 double  xo[Nequ], x[Nequ], x_old[Nequ], y_max[Nequ];
 double  Tf, Wf, Step;
 double  alphamin, alphamax;
 int     K, Nt, Nss, Param_freq;
+int		Nt_temp = 500;
 double eta__1, eta__2, PL;
 double PL_8C, PL_8S, PL_9C, PL_9S;
 
@@ -99,16 +100,7 @@ void NewData( void )
 
 
 /*===========================  Func  ===========================*/
-void Func(double *F, double *y, double t, double Parametro)
-{
-	double  omega;
-	omega = Wf;
-
-	#include "arquivo_equacoes_exp4.h"
-
-	return;
-
-}
+#include "_config_modelo/arquivo_equacoes.h"
 
 
 /*===========================  Runge_Kutta  ===========================*/
@@ -172,6 +164,13 @@ void main( void )
 	double alpha, derro;
 	FILE *fd;
 
+	// buffer de armazenamento  do output
+	// 30 caracteres * (2 * Nequ + 4) * (21 linhas)
+	const int tamanho_buffer = 30 * (2 * Nequ + 4) * 21;
+	char buffer_temp[tamanho_buffer];
+	int cx = 0; // numero de caracteres gravados no buffe temporario
+
+
 	fd=fopen("force.txt","w");
 
 	NewData( );
@@ -183,7 +182,7 @@ void main( void )
 		
 	for(k=1;k<=K;k++)
 	{
-		printf("%d  / %d  \r",k,K);
+		printf("Ponto: %d  / %d  \n",k,K);
 
 		/* Perturbacao para cada iteracao  */
 		for(i=0;i<Nequ;i++){
@@ -193,6 +192,7 @@ void main( void )
 
 		/* Calculo do parametro de controle */
 		alpha = alphamin + (k-1)*(alphamax - alphamin)/(K-1);
+		printf("alpha: %.6f \r", alpha);
 
 		/* Calculo do periodo do sistema quando o parametro eh a frequencia ==> Param_freq = 1 */
 		if(Param_freq) 
@@ -206,60 +206,94 @@ void main( void )
 		}
 		Step = Tf / Ndiv;   
 
-		/* Iteracoes para eliminar a parte transiente  */
-		for(i=1;i<=Nt;i++)
-			Runge_Kutta(x, alpha);
-
-		/* Guarda valor final de x */
-		for(ij=0; ij<Nequ; ij++)
-			x_old[ij] = x[ij];
-
-		/* Imprime ponto fixo calculado  */
-		fprintf(fd,"%d,  %10.6e,  ",k,alpha);
-		for(j=0;j<Nequ;j=j+2)
-			fprintf(fd,"%16.12e,  %16.12e,  %16.12e,  %16.12e,  ", x_old[j] ,x_old[j+1], y_max[j], y_max[j+1]);
-		fprintf(fd,"1 \n");
-
-		/* Integra para calcular a periodicidade da resposta  */
+		int flag_orbita = 1;
+		int flag_Nt = 1;
+		int num_iter = 0;
 		periodo = 1;
-		flag = 1;
-		
-		while(flag)
+
+		/* Iteracoes para eliminar a parte transiente  */
+		// Regras de saída do while-loop
+		// flag_orbita = 0			-> encontrou uma órbita fechada
+		// ou
+		// flag_Nt = 0				-> excedeu o número máximo de iteracoes
+		while (flag_orbita != 0 && flag_Nt != 0)
 		{
-			/* Calcula mais um ponto de integracao  */
-			Runge_Kutta(x, alpha);
+			cx = 0; // seta cx para o inicio do buffer_temporario
 
-			/* Avalia se o ponto x calculado � igual a x_old */
-			retorno = 0;
-			for(ij=0; ij<Nequ; ij++)
+			for (i = 0 + periodo; i <= Nt_temp; i++)
+				Runge_Kutta(x, alpha);
+			
+			num_iter = num_iter + i - 1;
+			if (num_iter >= Nt)
 			{
-				derro = fabs(x[ij]-x_old[ij]);
-				if(derro>1.0e-5)
-					retorno++;
+				// sai do while-loop na proxima iteracao pois estourou o limite Nt
+				flag_Nt = 0;
 			}
 
-			/* Se nao � igual retorna a uma nova integracao, caso contrario sai do loop do while */
-			if(retorno != 0)
-			{
-				periodo++;
-				
-				/* Imprime ponto fixo calculado  */
-				fprintf(fd,"%d,  %10.6e,  ",k,alpha);
-				for(j=0;j<Nequ;j=j+2)
-					fprintf(fd,"%16.12e,  %16.12e,  %16.12e,  %16.12e,  ", x[j], x[j+1], y_max[j], y_max[j+1]);
-				fprintf(fd,"%d",periodo);
-				fprintf(fd,"\n");
-			}
-			else
-			{
-				flag = 0;
-			}
+			/* Guarda valor final de x */
+			for (ij = 0; ij < Nequ; ij++)
+				x_old[ij] = x[ij];
 
-		
-			/* Avalia limte de periodicidade */
-			if(periodo>Nss)
-				flag = 0;
+			/* Imprime ponto fixo calculado  */
+			cx = sprintf(buffer_temp + cx, "%d,  %10.6e,  ", k, alpha) + cx;
+			for (j = 0; j < Nequ; j = j + 2)
+				cx = sprintf(buffer_temp + cx, "%16.12e,  %16.12e,  %16.12e,  %16.12e,  ", x_old[j], x_old[j + 1], y_max[j], y_max[j + 1]) + cx;
+			cx = sprintf(buffer_temp + cx, "1 , %d\n", num_iter) + cx;
+
+			/* Integra para calcular a periodicidade da resposta  */
+			periodo = 1;
+			flag = 1;
+
+			while (flag)
+			{
+				/* Calcula mais um ponto de integracao  */
+				Runge_Kutta(x, alpha);
+
+				/* Avalia se o ponto x calculado � igual a x_old */
+				retorno = 0;
+				for (ij = 0; ij < Nequ; ij++)
+				{
+					derro = fabs(x[ij] - x_old[ij]);
+					if (derro > 1.0e-5)
+						retorno++;
+				}
+
+				/* Se nao � igual retorna a uma nova integracao, caso contrario sai do loop do while */
+				if (retorno != 0)
+				{
+					periodo++;
+
+					/* Imprime ponto fixo calculado  */
+					cx = sprintf(buffer_temp + cx, "%d,  %10.6e,  ", k, alpha) + cx;
+					for (j = 0; j < Nequ; j = j + 2)
+						cx = sprintf(buffer_temp + cx, "%16.12e,  %16.12e,  %16.12e,  %16.12e,  ", x[j], x[j + 1], y_max[j], y_max[j + 1]) + cx;
+					cx = sprintf(buffer_temp + cx, "%d, %d", periodo, num_iter + periodo - 1) + cx;
+					cx = sprintf(buffer_temp + cx, "\n") + cx;
+				}
+				else
+				{
+					flag = 0;
+					flag_orbita = 0;
+
+					/* Imprime ponto fixo calculado  */
+					cx = sprintf(buffer_temp + cx, "%d,  %10.6e,  ", k, alpha) + cx;
+					for (j = 0; j < Nequ; j = j + 2)
+						cx = sprintf(buffer_temp + cx, "%16.12e,  %16.12e,  %16.12e,  %16.12e,  ", x[j], x[j + 1], y_max[j], y_max[j + 1]) + cx;
+
+					cx = sprintf(buffer_temp + cx, "%d, %d", periodo, -1) + cx;
+					cx = sprintf(buffer_temp + cx, "\n") + cx;
+				}
+
+
+				/* Avalia limte de periodicidade */
+				if (periodo > Nss)
+				{
+					flag = 0;
+				}
+			}
 		}
+
+		fputs(buffer_temp,fd);
 	}
 	fclose(fd);
 	return;

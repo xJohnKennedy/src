@@ -31,7 +31,7 @@
 #include <math.h>
 
  /******************Declaracoes principais ******************/
-#include "Kutta_header_config.h"
+#include "_config_modelo/Kutta_header_config.h"
 
 double Wf, Gamma1, Xo[Nequ], Yo, Tf, fase;
 double NC1, NC2, Step, Tmax;
@@ -41,7 +41,7 @@ double PL_8C, PL_8S, PL_9C, PL_9S;
 
 static char file_read[20], file_write[20];
 static void Runge_Kutta(double *y);
-static void Func(double *F, double *y, double t);
+static void Func(double *F, double *y, double t, double Parametro);
 
 // variaveis de controle do modo de leitura
 int modo_leitura = 0;
@@ -100,17 +100,7 @@ void NewData(void)
 }
 
 /*===========================  Func  ===========================*/
-void Func(double *F, double *y, double t)
-{
-	double omega;
-	omega = Wf;
-
-#include "arquivo_equacoes_exp4.h"
-
-	return;
-
-	return;
-}
+#include "_config_modelo/arquivo_equacoes.h"
 
 /*===========================  Runge_Kutta  ===========================*/
 static void Runge_Kutta(double *y)
@@ -165,25 +155,25 @@ static void Runge_Kutta(double *y)
 	/* Integra��o no tempo */
 	while (fabs(t) >= 0.0 && fabs(t) <= fabs(Tmax))
 	{
-		Func(k0, y, t);
+		Func(k0, y, t, Wf);
 		for (i = 0; i < Nequ; i++)
 		{
 			y0[i] = y[i];
 			y[i] = y0[i] + k0[i] * 0.5 * Step;
 		}
 		t = t + Step * 0.5;
-		Func(k1, y, t);
+		Func(k1, y, t, Wf);
 		for (i = 0; i < Nequ; i++)
 		{
 			y[i] = y0[i] + k1[i] * 0.5 * Step;
 		}
-		Func(k2, y, t);
+		Func(k2, y, t, Wf);
 		for (i = 0; i < Nequ; i++)
 		{
 			y[i] = y0[i] + k2[i] * Step;
 		}
 		t = t + Step * 0.5;
-		Func(k3, y, t);
+		Func(k3, y, t, Wf);
 		for (i = 0; i < Nequ; i++)
 		{
 			y[i] = y0[i] + (k0[i] + 2.0 * (k1[i] + k2[i]) + k3[i]) / 6.0 * Step;
