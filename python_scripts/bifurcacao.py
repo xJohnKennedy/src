@@ -36,11 +36,10 @@ if not os.path.exists(path):
     
 nome_base_grafico = 'bifurcacao_C'
 
-
 # %%
 
 total_variaveis = 21
-
+correcao_frequencia = 0.95176
 
 # %%
 ### import data
@@ -73,10 +72,16 @@ for variavel in range(1,total_variaveis+1):
     shape = data[0].shape
     for j in range(0,shape[0]):
         data_1__y.append(data[0][j,col])
-        data_1__x.append(data[0][j,1])
+        data_1__x.append(data[0][j,1]*correcao_frequencia)
     print("Nummero de pontos caminho 1 = "+str(shape[0]))
     
-    pyplot.scatter(data_1__x,data_1__y, marker='o', color='blue', s=10, label='21 d.o.f')
+    config_plot=dict(marker='o', color='blue', s=10)
+    pyplot.scatter(data_1__x,data_1__y, **config_plot)
+
+    # saving file to load in another python file
+    # https://stackoverflow.com/questions/48912527/how-to-join-two-matplotlib-figures
+    np.savez(path+nomde_grafico+'_caminho_1.npz', method='scatter', \
+                            args=(data_1__x, data_1__y), kwargs=config_plot)
     
     #plotagem do ponto 2
     data_1__x = []
@@ -85,10 +90,16 @@ for variavel in range(1,total_variaveis+1):
     shape = data[1].shape
     for j in range(0,shape[0]):
         data_1__y.append(data[1][j,col])
-        data_1__x.append(data[1][j,1])
+        data_1__x.append(data[1][j,1]*correcao_frequencia)
     print("Nummero de pontos caminho 2 = "+str(shape[0]))
     
-    pyplot.scatter(data_1__x,data_1__y, marker='o', color='blue', s=10)
+    config_plot=dict(marker='o', color='blue', s=10, label='21 d.o.f')
+    pyplot.scatter(data_1__x,data_1__y, **config_plot)
+
+    # saving file to load in another python file
+    # https://stackoverflow.com/questions/48912527/how-to-join-two-matplotlib-figures
+    np.savez(path+nomde_grafico+'_caminho_2.npz', method='scatter', \
+                            args=(data_1__x, data_1__y), kwargs=config_plot)
     
     #pyplot.xlim(min(data_1__x)-0.1*abs(min(data_1__x)),max(data_1__x)+0.1*abs(max(data_1__x)))
     #pyplot.ylim(0,2)
@@ -96,7 +107,7 @@ for variavel in range(1,total_variaveis+1):
     pyplot.ylabel(r'$W_{'+str(variavel)+'}/h$')
     pyplot.legend(loc='upper right',ncol=1)
     pyplot.ticklabel_format(axis='both',style='sci',scilimits=(0,0))
-    pyplot.savefig(path+nomde_grafico+'.svg',dpi=900,bbox_inches='tight')
+    #pyplot.savefig(path+nomde_grafico+'.svg',dpi=900,bbox_inches='tight')
     pyplot.savefig(path+nomde_grafico+'.png',dpi=300,bbox_inches='tight')
     #pyplot.show()
     pyplot.close()
