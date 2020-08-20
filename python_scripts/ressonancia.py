@@ -39,7 +39,7 @@ nome_base_grafico = 'ressonancia_C'
 # %%
 
 total_variaveis = 21
-correcao_frequencia = 0.95176
+correcao_frequencia = 1.0
 
 # %%
 ### import data
