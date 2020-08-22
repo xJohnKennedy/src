@@ -162,7 +162,7 @@ void main( void )
 {
 	int k,i,j, ij, flag, periodo, retorno;
 	double alpha, derro;
-	FILE *fd;
+	FILE *fd, *fd_log;
 
 	// buffer de armazenamento  do output
 	// 30 caracteres * (2 * Nequ + 4) * (21 linhas)
@@ -172,6 +172,7 @@ void main( void )
 
 
 	fd=fopen("force.txt","w");
+	fd_log = fopen("force_log.txt", "w");
 
 	NewData( );
 	printf("\n\nSai de New data\n");
@@ -210,6 +211,12 @@ void main( void )
 		int flag_Nt = 1;
 		int num_iter = 0;
 		periodo = 1;
+
+		/* Imprime ponto inicial  de cada iteracao para possivel reproducao do passo com runge kutta  */
+		fprintf(fd_log, "%d,  %10.6e,  ", k, alpha);
+		for (j = 0; j < Nequ; j = j + 2)
+			fprintf(fd_log, "%16.12e,  %16.12e,  %16.12e,  %16.12e,  ", x[j], x[j + 1], y_max[j], y_max[j + 1]);
+		fprintf(fd_log, "1 , %d\n", num_iter);
 
 		/* Iteracoes para eliminar a parte transiente  */
 		// Regras de saída do while-loop

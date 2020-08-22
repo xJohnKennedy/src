@@ -217,7 +217,7 @@ int main(void)
 	printf("\t [1]:leitura direta do arquivo Kutta.dat\n");
 	printf("\t [2]:leitura do arquivo Kutta.dat e definicao das condicoes inicias dada pelo user\n");
 	printf("\t [3]:leitura do arquivo Kutta.dat e definicao das condicoes inicias dada pela leitura do arquivo poincare.txt\n");
-	printf("\t [4]:leitura do arquivo Kutta.dat e definicao das condicoes inicias dada pela leitura do arquivo force.txt\n");
+	printf("\t [4]:leitura do arquivo Kutta.dat e definicao das condicoes inicias dada pela leitura do arquivo force_log.txt\n");
 	printf("-------------------------------------------------------------\n");
 	printf(" Escolha uma opcao : ");
 	scanf("%d", &modo_leitura);
@@ -273,7 +273,7 @@ int main(void)
 		fclose(fd_poincare);
 	} else if (modo_leitura == 4)
 	{
-		printf("\n\n Entre com o valor da linha a ser lida no arquivo force.txt : ");
+		printf("\n\n Entre com o valor da linha a ser lida no arquivo force_log.txt : ");
 		scanf("%d", &linha_force);
 
 		FILE *fd_force;
@@ -282,7 +282,7 @@ int main(void)
 		double lixo;
 		int lixo_d;
 
-		fd_force = fopen("force.txt", "r");
+		fd_force = fopen("force_log.txt", "r");
 		if (fd_force == NULL)
 		{
 			printf("\n Nao foi possivel abrir arquivo de saida!\n");
@@ -314,6 +314,11 @@ int main(void)
 		fclose(fd_force);
 	}
 
+	// atualiza o periodo e Step caso nas leituras do force_log.txt ou poincare.txt
+	// o usuario ler um ponto fixo com Wf diferente do existente em Kutta.dat
+	Tf = 2 * Pi / Wf;
+	Step = Tf / Ndiv;
+
 	// imprime dados finais que serao utilizados para o processamento do Runge Kutta
 	printf("\n\n Numero de equacoes do sistema =  %d \n", Nequ);
 	for (int id_eq = 0; id_eq < Nequ; id_eq++)
@@ -326,6 +331,8 @@ int main(void)
 					PL_8C, PL_8S, PL_9C, PL_9S);
 	printf(" PL      = %25.20lf \n", PL);
 	printf(" Tmax    = %25.5lf \n", Tmax);
+	printf(" Periodo = %25.5lf \n", Tf);
+	printf(" Step    = %25.5lf \n", Step);
 
 	printf("\n\n PRESSIONE PARA SALVAR Kutta.dat E INICIAR O RUNGE KUTTA.....\n");
 	system("pause");
