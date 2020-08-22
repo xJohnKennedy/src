@@ -41,16 +41,22 @@ double multiplicacao(double *Vetor_ymm0, double  *Vetor_ymm1, double  *Vetor_ymm
 
     for (int i=0; i<num_f; i++ )
     {
-        vec0 = _mm256_load_pd(Vetor_ymm0 + 4*i);
-        vec1 = _mm256_load_pd(Vetor_ymm1 + 4*i);
-        vec2 = _mm256_load_pd(Vetor_ymm2 + 4*i);
-        vec3 = _mm256_load_pd(Vetor_ymm3 + 4*i);
+        vec0 = _mm256_load_pd(Vetor_ymm0);
+        vec1 = _mm256_load_pd(Vetor_ymm1);
+        vec2 = _mm256_load_pd(Vetor_ymm2);
+        vec3 = _mm256_load_pd(Vetor_ymm3);
         result_1 = _mm256_mul_pd (vec0, vec1);
         result_2 = _mm256_mul_pd (vec2, vec3);
         result_3 = _mm256_mul_pd (result_1, result_2);
         result_final_temp = _mm256_add_pd (result_3, result_final);
         result_final = result_final_temp;
-       // _mm256_store_pd(Vetor_ymm0 + 4*i,result_3);
+
+		// incremento dos poteiros em 4 devido ao AVX vetorizar em 256 bits = 32 bytes = 4 * sizeof(double)
+		Vetor_ymm0 += 4;
+		Vetor_ymm1 += 4;
+		Vetor_ymm2 += 4;
+		Vetor_ymm3 += 4;
+       
     }
 
     // const double result = pairwise_sum (Vetor_ymm0,  num_f*4);
