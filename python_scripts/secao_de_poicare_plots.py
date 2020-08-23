@@ -26,6 +26,9 @@ pyplot.rcParams['axes.labelsize'] = 30
 
 pyplot.rcParams['legend.fontsize'] = 16
 
+### https://github.com/matplotlib/matplotlib/issues/5907#issuecomment-179001811
+pyplot.rcParams['agg.path.chunksize'] = 10000
+
 
 # %%
 # pasta onde armazena os plots
@@ -92,8 +95,10 @@ def gera_plot(path, data, ler, shape, total_variaveis):
         pyplot.savefig(path + nomde_grafico + '.png',
                        dpi=300,
                        bbox_inches='tight')
-        # pyplot.show()
-        pyplot.close(fig)
+        #pyplot.show()
+        pyplot.cla()
+        pyplot.clf()
+        pyplot.close('all')
 
 
 # %%
