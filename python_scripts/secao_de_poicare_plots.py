@@ -54,7 +54,8 @@ def gera_plot(path, data, ler, shape, total_variaveis):
         print("total de pontos plotados = %d" % (ler))
 
         # matplotlib plot
-        fig = pyplot.figure(figsize=(10, 10))
+        # figura deve ser definida como subplots e retornas os axes para posterior configuracao do tick format
+        fig, ax = pyplot.subplots(1, 1, figsize=(10, 10))
 
         data_1__x = []
         data_1__y = []
@@ -82,7 +83,12 @@ def gera_plot(path, data, ler, shape, total_variaveis):
             max(data_1__y) + 0.01 * abs(max(data_1__y)))
         pyplot.ylabel(r'$\dot{W_{' + str(variavel) + '}}/h$')
         pyplot.xlabel(r'$W_{' + str(variavel) + '}/h$')
-        pyplot.ticklabel_format(axis='both', style='sci', scilimits=(0, 0))
+        pyplot.ticklabel_format(axis='both',
+                                style='sci',
+                                scilimits=(0, 0),
+                                useOffset=False)
+        #ax.xaxis.set_major_formatter(pyplot.FuncFormatter('{:.2f}'.format))
+        #ax.yaxis.set_major_formatter(pyplot.FuncFormatter('{:.2f}'.format))
         pyplot.savefig(path + nomde_grafico + '.png',
                        dpi=300,
                        bbox_inches='tight')
