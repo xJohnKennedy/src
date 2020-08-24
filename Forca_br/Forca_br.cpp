@@ -53,7 +53,6 @@ double  xo[Nequ], x[Nequ], x_old[Nequ], y_max[Nequ];
 double  Tf, Wf, Step;
 double  alphamin, alphamax;
 int     K, Nt, Nss, Param_freq;
-int		Nt_temp = 500;
 double eta__1, eta__2, PL;
 double PL_8C, PL_8S, PL_9C, PL_9S;
 
@@ -188,7 +187,7 @@ void main( void )
 		/* Perturbacao para cada iteracao  */
 		for(i=0;i<Nequ;i++){
 			x[i]=x[i]+1e-6;
-			y_max[i]=0;
+			y_max[i] = 0;
 		}
 
 		/* Calculo do parametro de controle */
@@ -241,15 +240,15 @@ void main( void )
 			for (ij = 0; ij < Nequ; ij++)
 				x_old[ij] = x[ij];
 
-			/* Imprime ponto fixo calculado  */
-			cx = sprintf(buffer_temp + cx, "%d,  %10.6e,  ", k, alpha) + cx;
-			for (j = 0; j < Nequ; j = j + 2)
-				cx = sprintf(buffer_temp + cx, "%16.12e,  %16.12e,  %16.12e,  %16.12e,  ", x_old[j], x_old[j + 1], y_max[j], y_max[j + 1]) + cx;
-			cx = sprintf(buffer_temp + cx, "1 , %d\n", num_iter) + cx;
 
 			/* Integra para calcular a periodicidade da resposta  */
 			periodo = 1;
 			flag = 1;
+
+			// zera y_max para armazenar valor maximo da orbita apos o periodo transiente
+			for (i = 0; i < Nequ; i++) {
+				y_max[i] = 0;
+			}
 
 			while (flag)
 			{
@@ -268,14 +267,15 @@ void main( void )
 				/* Se nao � igual retorna a uma nova integracao, caso contrario sai do loop do while */
 				if (retorno != 0)
 				{
-					periodo++;
 
 					/* Imprime ponto fixo calculado  */
 					cx = sprintf(buffer_temp + cx, "%d,  %10.6e,  ", k, alpha) + cx;
 					for (j = 0; j < Nequ; j = j + 2)
 						cx = sprintf(buffer_temp + cx, "%16.12e,  %16.12e,  %16.12e,  %16.12e,  ", x[j], x[j + 1], y_max[j], y_max[j + 1]) + cx;
-					cx = sprintf(buffer_temp + cx, "%d, %d", periodo, num_iter + periodo - 1) + cx;
+					cx = sprintf(buffer_temp + cx, "%d, %d", periodo, num_iter + periodo) + cx;
 					cx = sprintf(buffer_temp + cx, "\n") + cx;
+
+					periodo++;
 				}
 				else
 				{
@@ -287,7 +287,7 @@ void main( void )
 					for (j = 0; j < Nequ; j = j + 2)
 						cx = sprintf(buffer_temp + cx, "%16.12e,  %16.12e,  %16.12e,  %16.12e,  ", x[j], x[j + 1], y_max[j], y_max[j + 1]) + cx;
 
-					cx = sprintf(buffer_temp + cx, "%d, %d", periodo, -1) + cx;
+					cx = sprintf(buffer_temp + cx, "%d, %d", periodo, num_iter + periodo) + cx;
 					cx = sprintf(buffer_temp + cx, "\n") + cx;
 				}
 
