@@ -1,3 +1,4 @@
 #igonara arquivos de teste
 /python_scripts/*.txt
 /python_scripts/plots/**
+/python_scripts/__pycache__/**

@@ -43,8 +43,8 @@ def cria_pasta_plots():
 # %%
 # import data
 def ler_dados():
-    data_donnell = pandas.read_csv('poincare.txt', header=None).to_numpy()
-    return data_donnell
+    data = pandas.read_csv('poincare.txt', header=None).to_numpy()
+    return data
 
 
 # %%
