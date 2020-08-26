@@ -54,9 +54,10 @@ def ler_dados():
 # %%
 # funcao gera e imprime grafico
 def gera_plot(path, data, total_variaveis, correcao_frequencia):
+    import hashName
+    pasta_hash: str = hashName.nome_hash(os.getcwd() + "\\" + path)
     for variavel in range(1, int(total_variaveis + 1)):
-
-        nomde_grafico = 'ressonancia_C' + str(variavel)
+        nomde_grafico = pasta_hash + '_C%s' % (variavel)
         print(nomde_grafico)
         col = 4 * variavel
         print("col = %d" % (col))
@@ -80,7 +81,7 @@ def gera_plot(path, data, total_variaveis, correcao_frequencia):
 
         # saving file to load in another python file
         # https://stackoverflow.com/questions/48912527/how-to-join-two-matplotlib-figures
-        np.savez(path + nomde_grafico + '_caminho_1.npz',
+        np.savez(path + nomde_grafico + '_c_1.npz',
                  method='scatter',
                  args=(data_1__x, data_1__y),
                  kwargs=config_plot)
@@ -100,7 +101,7 @@ def gera_plot(path, data, total_variaveis, correcao_frequencia):
 
         # saving file to load in another python file
         # https://stackoverflow.com/questions/48912527/how-to-join-two-matplotlib-figures
-        np.savez(path + nomde_grafico + '_caminho_2.npz',
+        np.savez(path + nomde_grafico + '_c_2.npz',
                  method='scatter',
                  args=(data_1__x, data_1__y),
                  kwargs=config_plot)
