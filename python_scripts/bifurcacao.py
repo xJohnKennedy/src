@@ -66,52 +66,42 @@ def gera_plot(path, data, total_variaveis, correcao_frequencia):
         # figura deve ser definida como subplots e retornas os axes para posterior configuracao do tick format
         fig, ax = pyplot.subplots(1, 1, figsize=(10, 10))
 
-        data_1__x = []
-        data_1__y = []
+        Data_caminhos = [0, 1]
+        minData1X = 1e9
+        maxData1X = -1e9
+        minData1Y = 1e9
+        maxData1Y = -1e9
 
-        #plotagem do ponto 1
-        shape = data[0].shape
-        for j in range(0, shape[0]):
-            data_1__y.append(data[0][j, col])
-            data_1__x.append(data[0][j, 1] * correcao_frequencia)
-        print("Nummero de pontos caminho 1 = " + str(shape[0]))
+        for i in Data_caminhos:
+            data_1__x = []
+            data_1__y = []
 
-        config_plot = dict(marker='o', color='blue', s=10)
-        pyplot.scatter(data_1__x, data_1__y, **config_plot)
+            shape = data[i].shape
+            for j in range(0, shape[0]):
+                data_1__y.append(data[i][j, col])
+                data_1__x.append(data[i][j, 1] * correcao_frequencia)
+            print("Nummero de pontos caminho %i = %i" % (i + 1, shape[0]))
 
-        # saving file to load in another python file
-        # https://stackoverflow.com/questions/48912527/how-to-join-two-matplotlib-figures
-        np.savez(path + nomde_grafico + '_c_1.npz',
-                 method='scatter',
-                 args=(data_1__x, data_1__y),
-                 kwargs=config_plot)
+            config_plot = dict(marker='o', color='blue', s=10)
+            pyplot.scatter(data_1__x, data_1__y, **config_plot)
 
-        #plotagem do ponto 2
-        data_1__x = []
-        data_1__y = []
+            # saving file to load in another python file
+            # https://stackoverflow.com/questions/48912527/how-to-join-two-matplotlib-figures
+            np.savez(path + nomde_grafico + '_c_' + str(i + 1) + '.npz',
+                     method='scatter',
+                     args=(data_1__x, data_1__y),
+                     kwargs=config_plot)
 
-        shape = data[1].shape
-        for j in range(0, shape[0]):
-            data_1__y.append(data[1][j, col])
-            data_1__x.append(data[1][j, 1] * correcao_frequencia)
-        print("Nummero de pontos caminho 2 = " + str(shape[0]))
+            #calculo maximos e minimos do grafico
+            minData1X = min([min(data_1__x), minData1X])
+            maxData1X = max([max(data_1__x), maxData1X])
+            minData1Y = min([min(data_1__y), minData1Y])
+            maxData1Y = max([max(data_1__y), maxData1Y])
 
-        config_plot = dict(marker='o', color='blue', s=10, label='21 d.o.f')
-        pyplot.scatter(data_1__x, data_1__y, **config_plot)
-
-        # saving file to load in another python file
-        # https://stackoverflow.com/questions/48912527/how-to-join-two-matplotlib-figures
-        np.savez(path + nomde_grafico + '_c_2.npz',
-                 method='scatter',
-                 args=(data_1__x, data_1__y),
-                 kwargs=config_plot)
-
-        pyplot.xlim(
-            min(data_1__x) - 0.01 * abs(min(data_1__x)),
-            max(data_1__x) + 0.01 * abs(max(data_1__x)))
-        pyplot.ylim(
-            min(data_1__y) - 0.01 * abs(min(data_1__y)),
-            max(data_1__y) + 0.01 * abs(max(data_1__y)))
+        pyplot.xlim(minData1X - 0.01 * abs(minData1X),
+                    maxData1X + 0.01 * abs(maxData1X))
+        pyplot.ylim(minData1Y - 0.01 * abs(minData1Y),
+                    maxData1Y + 0.01 * abs(maxData1Y))
         pyplot.ylabel(r'$W_{' + str(variavel) + '}/h$')
         pyplot.xlabel(r'$\omega_{1}/\omega_{0}$')
         pyplot.ticklabel_format(axis='both',
