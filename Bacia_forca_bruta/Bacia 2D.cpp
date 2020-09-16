@@ -24,128 +24,82 @@ double G0, G1;
 double Y1min,Y1max,Y2min,Y2max;
 int Num_cel,Cor1,Cor2;
 double *q1,*q1p,*q2,*q2p;
-double k1[2], k2[2], k3[2], k4[2], g1[2], g2[2], g3[2], g4[2]; //MODIFICAR
+double k1[Nequ], k2[Nequ], k3[Nequ], k4[Nequ], g1[Nequ], g2[Nequ], g3[Nequ], g4[Nequ]; //MODIFICAR
 
 /*===========================  Func  ===========================*/
-void Func(double *F, double *y, double t)
-{
-		double  beta, xi, C1, alpha, delta;
- C1=136100; alpha=0.05922; delta=1.15;
-beta=G1;  xi=0.01;
-
- /*MR2 delta=1.2 */
-F[0] = y[1];
-F[1] = -0.25E3*(0.4E-2*alpha*C1*pow(delta+y[0],3.0)-0.4E-2*alpha*C1/pow(
-delta+y[0],3.0)+0.4E-2*C1*(delta+y[0])-0.4E-2*C1/pow(delta+y[0],5.0)-0.4E-2*C1/
-(delta*delta*delta*delta*delta*delta*delta)*(alpha*(delta*delta*delta*delta*
-delta*delta*delta*delta-1.0*delta*delta)+delta*delta*delta*delta*delta*delta
--1.0)*(1.0+beta*cos(Wf*t))*pow(delta+y[0],2.0)+0.8000000004E-2*sqrt(C1*(
-alpha*(delta*delta+5.0/(delta*delta*delta*delta))+7.0/(delta*delta*delta*delta*
-delta*delta)-1.0))*sqrt(C1*(0.6E1*alpha+0.6E1))*xi*y[1])/C1/(alpha*(delta*delta
-+5.0/(delta*delta*delta*delta))+7.0/(delta*delta*delta*delta*delta*delta)-1.0);
-	
-	return;
-		
-}
+#include "_config_modelo/arquivo_equacoes.h"
 
 
 /*===========================  Runge_Kutta  ===========================*/
 int Runge_Kutta(double *y, double *x, double Step, int Total)
 {
-  
-  int i, j;
-  double t1, t2, t3, t4, t;
-  int count;
 
-  /*y0 = (double*) calloc(M,sizeof(double));
-  y1 = (double*) calloc(M,sizeof(double));
-  k1 = (double*) calloc(M,sizeof(double));
-  k2 = (double*) calloc(M,sizeof(double));
-  k3 = (double*) calloc(M,sizeof(double));
-  k4 = (double*) calloc(M,sizeof(double));
-  g1 = (double*) calloc(M,sizeof(double));
-  g2 = (double*) calloc(M,sizeof(double));
-  g3 = (double*) calloc(M,sizeof(double));
-  g4 = (double*) calloc(M,sizeof(double));*/
+	int i, j;
+	double t1, t2, t3, t4, t;
+	int count;
 
-  for (i=0; i<=M-1; i++)
-  {
-	 k1[i] = 0.0;
-	 k2[i] = 0.0;
-	 k3[i] = 0.0;
-	 k4[i] = 0.0;
-	 g1[i] = 0.0;
-	 g2[i] = 0.0;
-	 g3[i] = 0.0;
-	 g4[i] = 0.0;
+	for (i = 0; i < Nequ; i++)
+	{
+		k1[i] = 0.0;
+		k2[i] = 0.0;
+		k3[i] = 0.0;
+		k4[i] = 0.0;
+		g1[i] = 0.0;
+		g2[i] = 0.0;
+		g3[i] = 0.0;
+		g4[i] = 0.0;
 
-  }
+	}
 
-  for(i=0; i<=M-1; i++)
-	  y[i] = x[i];
- 
-  t = 0.0;
-  j = 1;
+	for (i = 0; i < Nequ; i++)
+		y[i] = x[i];
 
-  /* Integracao de Runge-Kutta para um periodo */
-  while (j <= Total)
-  {
-	  t1 = t;
-	  for (i=0; i<M; i++)
-	  {
-		 g1[i] = y[i];
-	  }
-	  Func(k1, g1, t1);
+	t = 0.0;
+	j = 0;
 
+	/* Integracao de Runge-Kutta para um periodo */
+	while (j < Total)
+	{
+		t1 = t;
+		for (i = 0; i < Nequ; i++)
+		{
+			g1[i] = y[i];
+		}
+		Func(k1, g1, t1, Wf);
+		
+		t2 = t + Step * 0.5;
+		for (i = 0; i < Nequ; i++)
+		{
+			g2[i] = y[i] + k1[i] * 0.5*Step;
+		}
+		Func(k2, g2, t2, Wf);
 
-	  t2 = t + Step*0.5;   
-	  for (i=0; i<M; i++)
-	  {
-		 g2[i] = y[i] + k1[i]*0.5*Step;
-	  }
-	  Func(k2, g2, t2);
+		t3 = t + Step * 0.5;
+		for (i = 0; i < Nequ; i++)
+		{
+			g3[i] = y[i] + k2[i] * 0.5*Step;
+		}
+		Func(k3, g3, t3, Wf);
 
-	  t3 = t + Step*0.5;   
-	  for (i=0; i<M; i++)
-	  {
-		 g3[i] = y[i] + k2[i]*0.5*Step;
-	  }
-	  Func(k3, g3, t3);
-
-  	  t4 = t + Step;   
-	  for (i=0; i<M; i++)
-	  {
-		 g4[i] = y[i] + k3[i]*Step;
-	  }
-	  Func(k4, g4, t4);
+		t4 = t + Step;
+		for (i = 0; i < Nequ; i++)
+		{
+			g4[i] = y[i] + k3[i] * Step;
+		}
+		Func(k4, g4, t4, Wf);
 
 
-	  for (i=0; i<M; i++)
-	  {
-		 y[i] = y[i] + (k1[i]+2.0*(k2[i]+k3[i])+k4[i])/6.0*Step;
-	  }
+		for (i = 0; i < Nequ; i++)
+		{
+			y[i] = y[i] + (k1[i] + 2.0*(k2[i] + k3[i]) + k4[i]) / 6.0 * Step;
+		}
 
-	  t = t + Step;
-	  j++;
-  }
-  
-  /* Assigna valor final para o vetor y  */
-  /*for(i=0;i<=M-1;i++)
-		  y[i] = y1[i];
-  */
-  /*free(y0);
-  free(y1);
-  free(k1);
-  free(k2);
-  free(k3);
-  free(k4);
-  free(g1);
-  free(g2);
-  free(g3);
-  free(g4);*/
+		t = t + Step;
+		j++;
+	}
 
-  return(1);
- }
+	return(1);
+}
 
 
 
