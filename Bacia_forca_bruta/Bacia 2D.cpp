@@ -18,9 +18,17 @@
 #include <io.h>
 #include <string.h>
 #include <time.h>
-#include "bacia_dinamica.h"
 
-double G0, G1;
+/******************Declaracoes principais ******************/
+#include "_config_modelo/Kutta_header_config.h"
+
+double Wf, Tf;
+double eta__1, eta__2, PL;
+double PL_8C, PL_8S, PL_9C, PL_9S;
+
+
+int PeriodoMaximo;
+double Passo;
 double Y1min,Y1max,Y2min,Y2max;
 int Num_cel,Cor1,Cor2;
 double *q1,*q1p,*q2,*q2p;
@@ -121,7 +129,7 @@ void NewData(void)
 	fscanf(fdread, "%d\n", &PeriodoMaximo);
 
 	/* Frequencia da forca excitadora, dados de amortecimentos e amplitudes da carga */
-	fscanf(fdread, "%lf", &Wf);
+	fscanf(fdread, "%lf\n", &Wf);
 	fscanf(fdread, "%lf %lf", &eta__1, &eta__2);
 	fscanf(fdread, "%lf %lf %lf %lf %lf\n", &PL_8C, &PL_8S, &PL_9C, &PL_9S, &PL);
 
@@ -130,6 +138,13 @@ void NewData(void)
 
 	/* Coordenadas de analise */
 	fscanf(fdread, "%d %d\n", &Cor1, &Cor2);
+
+	// verificacao das coordernadas a serem analisadas
+	if (Cor1 >= Nequ && Cor2 >= Nequ && Cor1 == Cor2)
+	{
+		printf("Erro nas coordernadas a serem analisadas. Verifique! \n");
+		exit(0);
+	}
 
 	/* Periodo da forca excitadora */
 	Tf = 2 * Pi / Wf;
@@ -181,12 +196,6 @@ void CellsTrajec(void)
 
 	/* Imprime cabecalho de arquivo de saida */
 	/*fprintf(fd,"Numero   q1    q1p   q1atr   q1patr   Tempo   Periodicidade\n");
-	*/
-	if (x == NULL || y == NULL || y_old == NULL)
-	{
-		printf("memoria insuficiente \n");
-		exit(0);
-	}
 
 	/* Integracao no tempo para cada celula do espaco  */
 	cellnum = 1;
@@ -245,7 +254,7 @@ void CellsTrajec(void)
 			{
 				Periodo = 0;
 				/* Coordenadas iniciais para o novo ponto de analise (vetor x)*/
-				for (ij = 0; ij <= M - 1; ij++)
+				for (ij = 0; ij < Nequ; ij++)
 					y_old[ij] = y[ij];
 			}
 			/* Novo valor para vetor x  */
@@ -260,7 +269,7 @@ void CellsTrajec(void)
 		zo1atr = y[Cor2];
 
 		printf("%d / %d", i, Num_cel);
-		printf("   %15.12lf %15.12lf %d  %d  \r", y[Cor1], y[Cor2], Tempo, Periodo);
+		printf("   %15.12lf %15.12lf %d  %d  \n", y[Cor1], y[Cor2], Tempo, Periodo);
 		/* Imprime resultados do atrator da celula */
 		if (Tempo < 8000)
 		{
