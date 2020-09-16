@@ -24,7 +24,7 @@ double G0, G1;
 double Y1min,Y1max,Y2min,Y2max;
 int Num_cel,Cor1,Cor2;
 double *q1,*q1p,*q2,*q2p;
-double k1[Nequ], k2[Nequ], k3[Nequ], k4[Nequ], g1[Nequ], g2[Nequ], g3[Nequ], g4[Nequ]; //MODIFICAR
+double k1[Nequ], k2[Nequ], k3[Nequ], k4[Nequ], g1[Nequ], g2[Nequ], g3[Nequ], g4[Nequ];
 
 /*===========================  Func  ===========================*/
 #include "_config_modelo/arquivo_equacoes.h"
@@ -105,66 +105,64 @@ int Runge_Kutta(double *y, double *x, double Step, int Total)
 
 
 /* ===========================  NewData  ===========================*/
-void NewData( void )
+void NewData(void)
 {
- FILE    *fdread;
- long int i;
- double PI = 3.14159265358979323846;
- double a,b,c,d;
+	FILE    *fdread;
+	long int i;
+	double a, b, c, d;
 
- /* Get the new file name from the user and open it. */
- fdread = fopen( "bacia.dat", "r" );
- if( fdread == NULL ) {
-  printf( "\n Nao foi possivel abrir arquivo de leitura!\n" );
-  exit(0);
-  return;
- }
+	/* Get the new file name from the user and open it. */
+	fdread = fopen("bacia.dat", "r");
+	if (fdread == NULL) {
+		printf("\n Nao foi possivel abrir arquivo de leitura!\n");
+		exit(0);
+		return;
+	}
 
- rewind(fdread);
+	rewind(fdread);
 
- /* Dimension doof space */
- fscanf( fdread,"%d  %d\n", &M, &PeriodoMaximo );  
- 
-  /* Frequencia e amplitude da forca excitadora */
- fscanf( fdread,"%lf  %lf\n", &Wf, &G1 );
+	/* Dimension doof space */
+	fscanf(fdread, "%d\n", &PeriodoMaximo);
 
- /* Pre-carregamento estatico e parametros da equação */
- //fscanf( fdread,"%lf %lf %lf %lf %lf %lf %lf %lf %lf\n", &G0,  &epsilon, &lambda, &Q20, &eta, &delta, &psi, &beta, &alpha);
+	/* Frequencia da forca excitadora, dados de amortecimentos e amplitudes da carga */
+	fscanf(fdread, "%lf", &Wf);
+	fscanf(fdread, "%lf %lf", &eta__1, &eta__2);
+	fscanf(fdread, "%lf %lf %lf %lf %lf\n", &PL_8C, &PL_8S, &PL_9C, &PL_9S, &PL);
 
- /* Numero de células */
- fscanf( fdread,"%d\n", &Num_cel);
+	/* Numero de células */
+	fscanf(fdread, "%d\n", &Num_cel);
 
- /* Coordenadas de analise */
- fscanf( fdread,"%d %d\n", &Cor1,&Cor2);
+	/* Coordenadas de analise */
+	fscanf(fdread, "%d %d\n", &Cor1, &Cor2);
 
- /* Periodo da forca excitadora */
- Tf    = 2*PI / Wf;        
- 
- /* Passo para integracao no tempo */
- Passo = Tf / 500;        
+	/* Periodo da forca excitadora */
+	Tf = 2 * Pi / Wf;
 
- /* Alocaao de vetores para o tamanho da celula */
- q1 = (double*)calloc(Num_cel,sizeof(double));
- q1p = (double*)calloc(Num_cel,sizeof(double));
-  
- 
- /* Valor das coordenadas fixas para a analise */
- for(i=0;i<Num_cel;i++)
- {
-	 //fscanf( fdread,"%lf %lf %lf %lf\n", &a, &b, &c, &d );
-	 fscanf( fdread,"%lf %lf\n", &a, &b );
-	 q1[i]  = a;
-	 q1p[i] = b;
+	/* Passo para integracao no tempo */
+	Passo = Tf / 500;
 
- }
- /*Valor dos limites*/
- fscanf(fdread, "%lf %lf %lf %lf\n",&a,&b,&c,&d);
- Y1min = a;
- Y1max = b;
- Y2min = c;
- Y2max = d;
+	/* Alocaao de vetores para o tamanho da celula */
+	q1 = (double*)calloc(Num_cel, sizeof(double));
+	q1p = (double*)calloc(Num_cel, sizeof(double));
 
- return;
+
+	/* Valor das coordenadas fixas para a analise */
+	for (i = 0; i < Num_cel; i++)
+	{
+		//fscanf( fdread,"%lf %lf %lf %lf\n", &a, &b, &c, &d );
+		fscanf(fdread, "%lf %lf\n", &a, &b);
+		q1[i] = a;
+		q1p[i] = b;
+
+	}
+	/*Valor dos limites*/
+	fscanf(fdread, "%lf %lf %lf %lf\n", &a, &b, &c, &d);
+	Y1min = a;
+	Y1max = b;
+	Y2min = c;
+	Y2max = d;
+
+	return;
 }
 
 
