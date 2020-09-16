@@ -29,7 +29,6 @@ double k1[Nequ], k2[Nequ], k3[Nequ], k4[Nequ], g1[Nequ], g2[Nequ], g3[Nequ], g4[
 /*===========================  Func  ===========================*/
 #include "_config_modelo/arquivo_equacoes.h"
 
-
 /*===========================  Runge_Kutta  ===========================*/
 int Runge_Kutta(double *y, double *x, double Step, int Total)
 {
@@ -101,9 +100,6 @@ int Runge_Kutta(double *y, double *x, double Step, int Total)
 	return(1);
 }
 
-
-
-
 /* ===========================  NewData  ===========================*/
 void NewData(void)
 {
@@ -165,158 +161,137 @@ void NewData(void)
 	return;
 }
 
-
-
 /* ===========================  CellsTrajec  ===========================*/
 void CellsTrajec(void)
 {
-  FILE *fd;
+	FILE *fd;
 
-  int i, j, retorno, Periodo, PeriodoBack, flag;
-  int value, ij, Tempo; 
-  long int cellnum;
-  double x[2],y[2], y_old[2], xo[2], derro,zo0atr, zo1atr; //MODIFICAR
+	int i, j, retorno, Periodo, PeriodoBack, flag;
+	int value, ij, Tempo;
+	long int cellnum;
+	double x[Nequ], y[Nequ], y_old[Nequ], xo[Nequ], derro, zo0atr, zo1atr;
 
-  /* Abre arquivo de impressao   */
-  fd = fopen("select.txt","w");
-  if( fd == NULL ) {
-	  printf( "\n Nao foi possivel abrir arquivo de ravcells.txt !\n" );
-	  exit(0);
-	  return;
-  }
-  
-  /* Imprime cabecalho de arquivo de saida */
-  /*fprintf(fd,"Numero   q1    q1p   q1atr   q1patr   Tempo   Periodicidade\n");
-  */
-  if(x==NULL||y==NULL||y_old==NULL)
-  {
-	  printf("memoria insuficiente \n");
-	  exit(0);
-  } 
+	/* Abre arquivo de impressao   */
+	fd = fopen("select.txt", "w");
+	if (fd == NULL) {
+		printf("\n Nao foi possivel abrir arquivo de ravcells.txt !\n");
+		exit(0);
+		return;
+	}
 
-  /* Aloca vetores de cada celula  */
-     /* y = (double*) calloc(M,sizeof(double));
-	  x = (double*) calloc(M,sizeof(double));
-      xo = (double*) calloc(M,sizeof(double));
-      y_old = (double*) calloc(M,sizeof(double)); */     
+	/* Imprime cabecalho de arquivo de saida */
+	/*fprintf(fd,"Numero   q1    q1p   q1atr   q1patr   Tempo   Periodicidade\n");
+	*/
+	if (x == NULL || y == NULL || y_old == NULL)
+	{
+		printf("memoria insuficiente \n");
+		exit(0);
+	}
 
+	/* Integracao no tempo para cada celula do espaco  */
+	cellnum = 1;
 
-  /* Integracao no tempo para cada celula do espaco  */
-  cellnum = 1;
-  
-  for(i=0;i<Num_cel;i++)
-  {
-	  /* Contador de Tempo e de periodicidade da solucao */
-	  Tempo = 0;
-	  Periodo = 0;
-	  /* Coordenada de cada celula */
-	  x[0]=q1[i];
-	  x[1]=q1p[i];
-	  /*x[2]=1e-6;
-	  x[3]=1e-6;
-	  x[4]=1e-4;
-	  x[5]=1e-4;
-	  x[6]=1e-4;
-	  x[7]=1e-4;
-	  x[8]=1e-4;
-	  x[9]=1e-4;
-	  //MODIFICAR
-	  /* x[10]=1e-4;
-	  x[11]=1e-4;
-	  x[12]=1e-4;
-	  x[13]=1e-4;
-	  x[14]=1e-4;
-	  x[15]=1e-4;
-	  x[16]=1e-4;
-	  x[17]=1e-4;
-	  x[18]=1e-4;
-	  x[19]=1e-4;
-	  x[20]=1e-4;
-	  x[21]=1e-4;*/
-	  /* Coordenadas iniciais */
-	  for(ij=0; ij<=M-1; ij++)
-	  {
-		  y_old[ij] = x[ij];
-		  xo[ij] = x[ij];
-		  y[ij] = 0;
-	  }
-	  flag = 1;
+	// loop que percorre as celulas que definem o ponto inicial da bacia
+	for (i = 0; i < Num_cel; i++)
+	{
+		/* Contador de Tempo e de periodicidade da solucao */
+		Tempo = 0;
+		Periodo = 0;
+
+		// inicializa todas as variaveis 
+		for (int idx = 0; idx < Nequ; idx++)
+		{
+			x[idx] = 1e-4;
+		}
+
+		/* Coordenada de cada celula */
+		x[Cor1] = q1[i];
+		x[Cor2] = q1p[i];
+
+		/* Coordenadas iniciais */
+		for (ij = 0; ij < Nequ; ij++)
+		{
+			y_old[ij] = x[ij];
+			xo[ij] = x[ij];
+			y[ij] = 0;
+		}
+		flag = 1;
 
 
-	  while(flag && y[Cor1] < 1e10)
-	  {
-		  /* Integracao no tempo */ 
-		  value = Runge_Kutta( y, x, Passo, 500 );
-		  /* Conta numero de periodos de integracao e contador para periodicidade da solucao */
-		  Tempo++;
-		  Periodo++;
-		  /* Avalia se ponto calculado é o mesmo ao inicial  */
-		  retorno = 0;
-		  for(ij=0; ij<=M-1; ij++)
-		  {
-			  derro = fabs(y[ij]-y_old[ij]);
-			  if(derro>1.0e-8)
-				  retorno++;
-			  PeriodoBack = Periodo;
-		  }
-		  /*  Avalia retorno */
-		  if(retorno==0)
-		  {
-			  flag = 0;
-			  continue;
-		  }
-		  /* Reinicia contador de periodos */
-		  if(Periodo==PeriodoMaximo)
-		  {
-			  Periodo = 0;
-			  /* Coordenadas iniciais para o novo ponto de analise (vetor x)*/
-			  for(ij=0; ij<=M-1; ij++)
-				  y_old[ij] = y[ij];
-		  }
-		  /* Novo valor para vetor x  */
-		  for(ij=0; ij<=M-1; ij++)
-			  x[ij] = y[ij];
-		  /* Limita o numero de integracoes, caso nao exista solucao periodica  */
-		  if(Tempo>8000)
-			  flag = 0;
-	  }
-	  /* Celula mapeada (atrator)  */
-	  zo0atr = y[Cor1];
-	  zo1atr = y[Cor2];
-	  
-	  printf("%d / %d",i,Num_cel);
-	  printf("   %15.12lf %15.12lf %d  %d  \r",y[Cor1],y[Cor2],Tempo,Periodo);
-	  /* Imprime resultados do atrator da celula */
-	  if(Tempo<8000)
-	  {
-		  if(Y1min<=y[Cor1])
-		  //if(Y2min<=y[Cor1])
-		  {
-			  if(y[Cor1]<=Y1max)
-			  //if(y[Cor1]<=Y2max)
-			  {
-				  if(y[Cor2]>=Y2min)
-				  //if(y[Cor2]>=Y1min)
-				  {
-					  if(y[Cor2]<=Y2max)
-					  //if(y[Cor2]<=Y1max)
-					  {
-						  fprintf(fd,"%10.7lf %10.7lf %10.7lf %10.7lf\n", xo[Cor1], xo[Cor2], y[Cor1], y[Cor2]);
-						  
-					  }
-				  }
-			  }
-		  }
-	  }
-	  cellnum++;
-	  
-  }
-  /*free(x);
-  free(y_old);
-  free(xo); 
-  free(y);*/
-  fclose(fd);
-  return;
+		while (flag && y[Cor1] < 1e10)
+		{
+			/* Integracao no tempo */
+			value = Runge_Kutta(y, x, Passo, 500);
+			/* Conta numero de periodos de integracao e contador para periodicidade da solucao */
+			Tempo++;
+			Periodo++;
+			/* Avalia se ponto calculado é o mesmo ao inicial  */
+			retorno = 0;
+			for (ij = 0; ij < Nequ; ij++)
+			{
+				derro = fabs(y[ij] - y_old[ij]);
+				if (derro > 1.0e-8)
+					retorno++;
+				PeriodoBack = Periodo;
+			}
+			/*  Avalia retorno */
+			if (retorno == 0)
+			{
+				flag = 0;
+				continue;
+			}
+			/* Reinicia contador de periodos */
+			if (Periodo == PeriodoMaximo)
+			{
+				Periodo = 0;
+				/* Coordenadas iniciais para o novo ponto de analise (vetor x)*/
+				for (ij = 0; ij <= M - 1; ij++)
+					y_old[ij] = y[ij];
+			}
+			/* Novo valor para vetor x  */
+			for (ij = 0; ij < Nequ; ij++)
+				x[ij] = y[ij];
+			/* Limita o numero de integracoes, caso nao exista solucao periodica  */
+			if (Tempo > 8000)
+				flag = 0;
+		}
+		/* Celula mapeada (atrator)  */
+		zo0atr = y[Cor1];
+		zo1atr = y[Cor2];
+
+		printf("%d / %d", i, Num_cel);
+		printf("   %15.12lf %15.12lf %d  %d  \r", y[Cor1], y[Cor2], Tempo, Periodo);
+		/* Imprime resultados do atrator da celula */
+		if (Tempo < 8000)
+		{
+			if (Y1min <= y[Cor1])
+				//if(Y2min<=y[Cor1])
+			{
+				if (y[Cor1] <= Y1max)
+					//if(y[Cor1]<=Y2max)
+				{
+					if (y[Cor2] >= Y2min)
+						//if(y[Cor2]>=Y1min)
+					{
+						if (y[Cor2] <= Y2max)
+							//if(y[Cor2]<=Y1max)
+						{
+							fprintf(fd, "%10.7lf %10.7lf %10.7lf %10.7lf\n", xo[Cor1], xo[Cor2], y[Cor1], y[Cor2]);
+
+						}
+					}
+				}
+			}
+		}
+		cellnum++;
+
+	}
+	/*free(x);
+	free(y_old);
+	free(xo);
+	free(y);*/
+	fclose(fd);
+	return;
 }
 
 
