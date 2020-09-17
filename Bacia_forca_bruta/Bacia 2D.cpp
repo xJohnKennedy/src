@@ -118,7 +118,7 @@ void NewData(void)
 	/* Get the new file name from the user and open it. */
 	fdread = fopen("bacia.dat", "r");
 	if (fdread == NULL) {
-		printf("\n Nao foi possivel abrir arquivo de leitura!\n");
+		printf("\n Nao foi possivel abrir arquivo bacia.dat!\n");
 		exit(0);
 		return;
 	}
@@ -187,15 +187,15 @@ void CellsTrajec(void)
 	double x[Nequ], y[Nequ], y_old[Nequ], xo[Nequ], derro, zo0atr, zo1atr;
 
 	/* Abre arquivo de impressao   */
-	fd = fopen("select.txt", "w");
+	fd = fopen("bacia_results.txt", "w");
 	if (fd == NULL) {
-		printf("\n Nao foi possivel abrir arquivo de ravcells.txt !\n");
+		printf("\n Nao foi possivel abrir arquivo de bacia_results.txt !\n");
 		exit(0);
 		return;
 	}
 
-	/* Imprime cabecalho de arquivo de saida */
-	/*fprintf(fd,"Numero   q1    q1p   q1atr   q1patr   Tempo   Periodicidade\n");
+	/* Imprime cabecalho na tela */
+	printf("Numero            q1_atr               q1p_atr               Tempo   Periodicidade\n");
 
 	/* Integracao no tempo para cada celula do espaco  */
 	cellnum = 1;
@@ -268,8 +268,8 @@ void CellsTrajec(void)
 		zo0atr = y[Cor1];
 		zo1atr = y[Cor2];
 
-		printf("%d / %d", i, Num_cel);
-		printf("   %15.12lf %15.12lf %d  %d  \n", y[Cor1], y[Cor2], Tempo, Periodo);
+		printf("%6d / %6d", i, Num_cel);
+		printf("   %15.12e   %15.12e %8d  %2d  \n", y[Cor1], y[Cor2], Tempo, Periodo);
 		/* Imprime resultados do atrator da celula */
 		if (Tempo < 8000)
 		{
@@ -285,7 +285,7 @@ void CellsTrajec(void)
 						if (y[Cor2] <= Y2max)
 							//if(y[Cor2]<=Y1max)
 						{
-							fprintf(fd, "%10.7lf %10.7lf %10.7lf %10.7lf\n", xo[Cor1], xo[Cor2], y[Cor1], y[Cor2]);
+							fprintf(fd, "%16.12e %16.12e %16.12e %16.12e\n", xo[Cor1], xo[Cor2], y[Cor1], y[Cor2]);
 
 						}
 					}
