@@ -2,6 +2,7 @@
 #include <intrin.h>
 
 
+/*
 double pairwise_sum (double *x, int n)
 {
     if (n <= 2)
@@ -31,6 +32,7 @@ double kahanSum (double *x, int n)
 
     return sum;
 }
+*/
 
 double multiplicacao(double *Vetor_ymm0, double  *Vetor_ymm1, double  *Vetor_ymm2, double  *Vetor_ymm3, int num_f)
 {
