@@ -18,6 +18,7 @@
 #include <io.h>
 #include <string.h>
 #include <time.h>
+#include <thread>
 
 /******************Declaracoes principais ******************/
 #include "_config_modelo/Kutta_header_config.h"
@@ -32,7 +33,6 @@ double Passo;
 double Y1min,Y1max,Y2min,Y2max;
 int Num_cel,Cor1,Cor2;
 double *q1,*q1p,*q2,*q2p;
-double k1[Nequ], k2[Nequ], k3[Nequ], k4[Nequ], g1[Nequ], g2[Nequ], g3[Nequ], g4[Nequ];
 
 /******************Declaracoes das funcoes ******************/
 int Runge_Kutta(double *y, double *x, double Step, int Total);
@@ -51,6 +51,7 @@ int Runge_Kutta(double *y, double *x, double Step, int Total)
 	int i, j;
 	double t1, t2, t3, t4, t;
 	int count;
+	double k1[Nequ], k2[Nequ], k3[Nequ], k4[Nequ], g1[Nequ], g2[Nequ], g3[Nequ], g4[Nequ];
 
 	for (i = 0; i < Nequ; i++)
 	{
@@ -188,7 +189,8 @@ void CellsTrajec(void)
 {
 	FILE *fd;
 
-
+	int const n_max_thread = 4;
+	int num_cells_thread;
 	long int cellnum;
 
 	/* Abre arquivo de impressao   */
@@ -199,19 +201,46 @@ void CellsTrajec(void)
 		return;
 	}
 
+	if (n_max_thread < 1)
+	{
+		printf("\n Numero maximo de threads menor que 1!\n");
+		exit(0);
+	}
+
+	// inicializa threads de execucao
+	std::thread thd[n_max_thread];
+
+	// determina a quantidade maxima de celulas que serao calculadas por cada thread separamente
+	int temp = Num_cel / n_max_thread;
+	num_cells_thread = ceil(temp);
+	num_cells_thread = (int)num_cells_thread;
+	int resto = Num_cel - num_cells_thread * n_max_thread;
+
 	/* Imprime cabecalho na tela */
 	printf("Thread  Numero            q1_atr               q1p_atr               Tempo   Periodicidade\n");
 
 	/* Integracao no tempo para cada celula do espaco  */
 	cellnum = 1;
 
-	// loop que percorre as celulas que definem o ponto inicial da bacia
-	for (int i = 0; i < Num_cel; i++)
+	// loop que percorre as threads e distribui as celulas
+	for (int i = 0; i < n_max_thread; i++)
 	{
-		CellsTrajec_core(1,i, i + 2);
-		cellnum++;
+		//testa se esta na ultima thread para adcionar o resto
+		if (i + 1 < n_max_thread)
+		{
+			thd[i] = std::thread(&CellsTrajec_core, i + 1, i*num_cells_thread, (i + 1)*num_cells_thread - 1);
+		}
+		else 
+		{
+			thd[i] = std::thread(&CellsTrajec_core, i + 1, i*num_cells_thread, (i + 1)*num_cells_thread - 1 + resto);
+		}
 
 	}
+
+	//inicia threds e espera todas terminarem a execucao
+	for (int i = 0; i < n_max_thread; i++)
+		thd[i].join();
+
 	/*free(x);
 	free(y_old);
 	free(xo);
@@ -223,6 +252,9 @@ void CellsTrajec(void)
 
 void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const cell_fim)
 {
+	//imprime executanto thread
+	printf("Executando thread %2d: processo: %6d cell_init: %6d cell_fim: %6d\n", nome_thread, std::this_thread::get_id(), cell_inicio, cell_fim);
+
 	//int const nome_thread = nome sequencial da thread utilizado para criar arquivo de saida
 	//int const cell_inicio = valor de busca da primeira celula no vetor q1 e q1p
 	//int const cell_fim = valor de busca da ultima celula no vetor q1 e q1p
@@ -341,6 +373,8 @@ void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const c
 			}
 		}
 	}
+	
+	fclose(fd_thread);
 }
 
 
