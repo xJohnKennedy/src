@@ -34,6 +34,13 @@ int Num_cel,Cor1,Cor2;
 double *q1,*q1p,*q2,*q2p;
 double k1[Nequ], k2[Nequ], k3[Nequ], k4[Nequ], g1[Nequ], g2[Nequ], g3[Nequ], g4[Nequ];
 
+/******************Declaracoes das funcoes ******************/
+int Runge_Kutta(double *y, double *x, double Step, int Total);
+void NewData(void);
+void CellsTrajec(void);
+void CellsTrajec_core(int const nome_thread, int const cell_inicio, int const cell_fim);
+
+
 /*===========================  Func  ===========================*/
 #include "_config_modelo/arquivo_equacoes.h"
 
@@ -181,10 +188,8 @@ void CellsTrajec(void)
 {
 	FILE *fd;
 
-	int i, j, retorno, Periodo, PeriodoBack, flag;
-	int value, ij, Tempo;
+
 	long int cellnum;
-	double x[Nequ], y[Nequ], y_old[Nequ], xo[Nequ], derro, zo0atr, zo1atr;
 
 	/* Abre arquivo de impressao   */
 	fd = fopen("bacia_results.txt", "w");
@@ -195,13 +200,52 @@ void CellsTrajec(void)
 	}
 
 	/* Imprime cabecalho na tela */
-	printf("Numero            q1_atr               q1p_atr               Tempo   Periodicidade\n");
+	printf("Thread  Numero            q1_atr               q1p_atr               Tempo   Periodicidade\n");
 
 	/* Integracao no tempo para cada celula do espaco  */
 	cellnum = 1;
 
 	// loop que percorre as celulas que definem o ponto inicial da bacia
-	for (i = 0; i < Num_cel; i++)
+	for (int i = 0; i < Num_cel; i++)
+	{
+		CellsTrajec_core(1,i, i + 2);
+		cellnum++;
+
+	}
+	/*free(x);
+	free(y_old);
+	free(xo);
+	free(y);*/
+	fclose(fd);
+	return;
+}
+
+
+void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const cell_fim)
+{
+	//int const nome_thread = nome sequencial da thread utilizado para criar arquivo de saida
+	//int const cell_inicio = valor de busca da primeira celula no vetor q1 e q1p
+	//int const cell_fim = valor de busca da ultima celula no vetor q1 e q1p
+
+	// declaracao das variaveis locais
+	int i, j, retorno, Periodo, PeriodoBack, flag;
+	int value, ij, Tempo;
+	double x[Nequ], y[Nequ], y_old[Nequ], xo[Nequ], derro, zo0atr, zo1atr;
+
+	FILE *fd_thread;
+
+	/* Abre arquivo de impressao   */
+	char nome_arquivo[50];
+	int arquivo_criado = sprintf(nome_arquivo, "bacia_results_%d.txt", nome_thread);
+	fd_thread = fopen(nome_arquivo, "w");
+	if (fd_thread == NULL && arquivo_criado != -1) {
+		printf("\n Nao foi possivel abrir arquivo de %s !\n", nome_arquivo);
+		exit(0);
+		return;
+	}
+
+	int const total_celulas = cell_fim - cell_inicio + 1;
+	for (int i = 0; i < total_celulas; i++)
 	{
 		/* Contador de Tempo e de periodicidade da solucao */
 		Tempo = 0;
@@ -214,8 +258,8 @@ void CellsTrajec(void)
 		}
 
 		/* Coordenada de cada celula */
-		x[Cor1] = q1[i];
-		x[Cor2] = q1p[i];
+		x[Cor1] = q1[i + cell_inicio];
+		x[Cor2] = q1p[i + cell_inicio];
 
 		/* Coordenadas iniciais */
 		for (ij = 0; ij < Nequ; ij++)
@@ -268,7 +312,7 @@ void CellsTrajec(void)
 		zo0atr = y[Cor1];
 		zo1atr = y[Cor2];
 
-		printf("%6d / %6d", i, Num_cel);
+		printf("%5d  /%6d / %6d", nome_thread, i + cell_inicio, Num_cel);
 		printf("   %15.12e   %15.12e %8d  %2d  \n", y[Cor1], y[Cor2], Tempo, Periodo);
 		/* Imprime resultados do atrator da celula */
 		if (Tempo < 8000)
@@ -285,24 +329,19 @@ void CellsTrajec(void)
 						if (y[Cor2] <= Y2max)
 							//if(y[Cor2]<=Y1max)
 						{
-							fprintf(fd, "%16.12e %16.12e %16.12e %16.12e\n", xo[Cor1], xo[Cor2], y[Cor1], y[Cor2]);
-
+							fprintf(fd_thread, "%16.12e, %16.12e, %16.12e, %16.12e,", xo[Cor1], xo[Cor2], y[Cor1], y[Cor2]);
+							for (j = 0; j < Nequ; j = j + 2)
+							{
+								fprintf(fd_thread, "%16.12e,  %16.12e,  ", y[j], y[j + 1]);
+							}
+							fprintf(fd_thread, "%5d\n", nome_thread);
 						}
 					}
 				}
 			}
 		}
-		cellnum++;
-
 	}
-	/*free(x);
-	free(y_old);
-	free(xo);
-	free(y);*/
-	fclose(fd);
-	return;
 }
-
 
 
 /* ===========================  DoubToInt  ===========================*/
