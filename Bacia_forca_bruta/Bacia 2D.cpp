@@ -189,7 +189,6 @@ void CellsTrajec(void)
 {
 	FILE *fd;
 
-	int const n_max_thread = 4;
 	int num_cells_thread;
 	long int cellnum;
 
