@@ -240,6 +240,36 @@ void CellsTrajec(void)
 	for (int i = 0; i < n_max_thread; i++)
 		thd[i].join();
 
+	FILE *fd_thread;
+	char arquivo_thd_leitura[50];
+	char temp_c;
+	int key_arquivo_leitura;
+	//transferade dados dos arquivos de cada thread para o arquivo raiz
+	for (int i = 0; i < n_max_thread; i++)
+	{
+		key_arquivo_leitura = sprintf(arquivo_thd_leitura, "bacia_results_%d.txt", i);
+		fd_thread = fopen(arquivo_thd_leitura, "r");
+		if (fd_thread == NULL && key_arquivo_leitura != -1) {
+			printf("\n Nao foi possivel abrir arquivo de %s !\n", arquivo_thd_leitura);
+			exit(0);
+			return;
+		}
+
+		// le o conteudo do arquivo e grava no principal 
+		temp_c = fgetc(fd_thread);
+		while (temp_c != EOF)
+		{
+			fputc(temp_c, fd);
+			temp_c = fgetc(fd_thread);
+		}
+		fclose(fd_thread);
+
+		if (remove(arquivo_thd_leitura) == -1)
+		{
+			perror("Erro de remocao do arqivo:");
+		}
+	}
+
 	/*free(x);
 	free(y_old);
 	free(xo);
