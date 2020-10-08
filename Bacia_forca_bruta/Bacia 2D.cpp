@@ -225,20 +225,30 @@ void CellsTrajec(void)
 	/* Imprime cabecalho na tela */
 	printf("Thread  Numero            q1_atr               q1p_atr               Tempo   Periodicidade\n");
 
-	/* Integracao no tempo para cada celula do espaco  */
-	cellnum = 1;
+	
+	int correcao_resto = 0;
+	int ini = 0, fim = 0;
 
+	/* Integracao no tempo para cada celula do espaco  */
 	// loop que percorre as threads e distribui as celulas
 	for (int i = 0; i < n_max_thread; i++)
 	{
-		//testa se esta na ultima thread para adcionar o resto
-		if (i + 1 < n_max_thread)
+		//se o resto for maior que zero adiciona mais uma celula a thread
+		if (resto > 0)
 		{
-			thd[i] = std::thread(&CellsTrajec_core, i + 1, i*num_cells_thread, (i + 1)*num_cells_thread - 1);
+			ini = i * num_cells_thread + correcao_resto;
+			fim = (i + 1)*num_cells_thread - 1 + correcao_resto + 1;
+			thd[i] = std::thread(&CellsTrajec_core, i + 1, ini, fim);
+			//diminui resto
+			resto--;
+			//aumenta correcao
+			correcao_resto++;
 		}
 		else 
 		{
-			thd[i] = std::thread(&CellsTrajec_core, i + 1, i*num_cells_thread, (i + 1)*num_cells_thread - 1 + resto);
+			ini = i * num_cells_thread + correcao_resto;
+			fim = (i + 1)*num_cells_thread - 1 + correcao_resto;
+			thd[i] = std::thread(&CellsTrajec_core, i + 1, ini, fim);
 		}
 
 	}
