@@ -285,8 +285,6 @@ void CellsTrajec(void)
 	free(y);*/
 	fclose(fd);
 
-	system("pause");
-
 	return;
 }
 
