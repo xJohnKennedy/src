@@ -34,7 +34,7 @@ pyplot.rcParams['agg.path.chunksize'] = 10000
 # pasta onde armazena os plots
 def cria_pasta_plots():
 
-    path = "ressonancia\\"
+    path = "plots_bacia_atracao\\"
     if not os.path.exists(path):
         os.makedirs(path)
     return path
@@ -45,18 +45,50 @@ def cria_pasta_plots():
 def ler_dados():
     data = []
     data.append(
-        pandas.read_csv("..\\ponto 1\\force.txt", header=None).to_numpy())
-    data.append(
-        pandas.read_csv("..\\ponto 2\\force.txt", header=None).to_numpy())
+        pandas.read_csv(".\\bacia_results.txt", header=None).to_numpy())
     return data
 
 
 # %%
 # funcao gera e imprime grafico
-def gera_plot(path, data, total_variaveis, correcao_frequencia):
+def gera_plot(path, data, total_linhas, correcao_frequencia):
     import hashName
     pasta_hash: str = hashName.nome_hash(os.getcwd() + "\\" + path)
-    for variavel in range(1, int(total_variaveis + 1)):
+
+    dx, dy = 0.5, 0.5
+    n_div = 21
+    y, x = np.mgrid[slice(-5 - dy / 2, 5 + dy, dy),
+                    slice(-5 - dx / 2, 5 + dx, dx)]
+
+    #computando norma de z
+    z = []
+
+    for i in range(total_linhas):
+        norma = np.linalg.norm(np.array([data[i, 3], data[i, 4]]), 2)
+        z.append(norma)
+
+    z0 = np.zeros((n_div, n_div))
+
+    for i in range(n_div):
+        for j in range(n_div):
+            z0[j, i] = z[i * n_div + j]
+
+    from matplotlib.colors import BoundaryNorm
+    from matplotlib.ticker import MaxNLocator
+
+    levels = MaxNLocator(nbins=15).tick_values(min(z), max(z))
+
+    cmap = pyplot.get_cmap('PiYG')
+    norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
+
+    fig, (ax0) = pyplot.subplots(nrows=1)
+
+    im = ax0.pcolormesh(x, y, z0, cmap=cmap, norm=norm)
+    fig.colorbar(im, ax=ax0)
+    #ax0.set_title('pcolormesh with levels')
+    pyplot.show()
+
+    for variavel in range(1, int(total_linhas + 1)):
         nomde_grafico = pasta_hash + '_C%s' % (variavel)
         print(nomde_grafico)
         col = 4 * variavel
@@ -128,5 +160,5 @@ if __name__ == "__main__":
     correcao_frequencia = None
     if (correcao_frequencia == None):
         correcao_frequencia = 1.0
-    total_variaveis = (shape[1] - 4) / 4
-    gera_plot(path, data, total_variaveis, correcao_frequencia)
+    total_linhas = shape[0]
+    gera_plot(path, data[0], total_linhas, correcao_frequencia)
