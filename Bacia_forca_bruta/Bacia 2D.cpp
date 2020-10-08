@@ -17,7 +17,7 @@
 #include <math.h>
 #include <io.h>
 #include <string.h>
-#include <time.h>
+#include <chrono>
 #include <thread>
 
 /******************Declaracoes principais ******************/
@@ -190,6 +190,7 @@ void CellsTrajec(void)
 	FILE *fd;
 
 	int num_cells_thread;
+	int n_max_thread;
 	long int cellnum;
 
 	/* Abre arquivo de impressao   */
@@ -200,14 +201,20 @@ void CellsTrajec(void)
 		return;
 	}
 
+
+	// inicializa threads de execucao
+	printf("-->>>> Nao exceder a qtde de nucleos fisicos\n");
+	printf("-->>>> Numero de threads : ");
+	scanf("%d", &n_max_thread);
+	printf("\n\n");
+
 	if (n_max_thread < 1)
 	{
 		printf("\n Numero maximo de threads menor que 1!\n");
 		exit(0);
 	}
 
-	// inicializa threads de execucao
-	std::thread thd[n_max_thread];
+	std::thread* thd = new std::thread[n_max_thread];
 
 	// determina a quantidade maxima de celulas que serao calculadas por cada thread separamente
 	int temp = Num_cel / n_max_thread;
@@ -240,7 +247,7 @@ void CellsTrajec(void)
 	for (int i = 0; i < n_max_thread; i++)
 		thd[i].join();
 
-	system("pause");
+	//system("pause");
 
 	FILE *fd_thread;
 	char arquivo_thd_leitura[50];
@@ -277,14 +284,47 @@ void CellsTrajec(void)
 	free(xo);
 	free(y);*/
 	fclose(fd);
+
+	system("pause");
+
 	return;
 }
+
+/* ===========================  Tempo  ===========================*/
+struct Tempo
+{
+	std::chrono::time_point<std::chrono::steady_clock> inicio, fim;
+	std::chrono::duration<double> duracao;
+	int nome_thd;
+
+public:
+	//constroi objeto
+	Tempo(int const i)
+	{
+		nome_thd = i;
+		inicio = std::chrono::high_resolution_clock::now();
+	}
+	// destroi objeto
+	~Tempo()
+	{
+		fim = std::chrono::high_resolution_clock::now();
+		duracao = fim - inicio;
+
+		printf("->>Tempo de calculo da thread %d : %f s\n", nome_thd, duracao);
+	}
+};
 
 
 void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const cell_fim)
 {
+	// inicializa timer
+	// como ele esta limitado ao escopo da funcao executada pela thread
+	// logo que a thread terminar e o escopo do timer acabar ele imprime a duracao
+	Tempo tempo(nome_thread);
+
 	//imprime executanto thread
-	printf("Executando thread %2d: processo: %6d cell_init: %6d cell_fim: %6d\n", nome_thread, std::this_thread::get_id(), cell_inicio, cell_fim);
+	printf("Executando thread %2d: processo: %6d cell_init: %6d cell_fim: %6d\n", 
+		nome_thread, std::this_thread::get_id(), cell_inicio, cell_fim);
 
 	//int const nome_thread = nome sequencial da thread utilizado para criar arquivo de saida
 	//int const cell_inicio = valor de busca da primeira celula no vetor q1 e q1p
@@ -375,7 +415,7 @@ void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const c
 		zo0atr = y[Cor1];
 		zo1atr = y[Cor2];
 
-		printf("%5d  /%6d / %6d", nome_thread, i + cell_inicio, Num_cel);
+		printf("%5d  /%6d / %6d", nome_thread, i + cell_inicio, cell_fim);
 		printf("   %15.12e   %15.12e %8d  %2d  \n", y[Cor1], y[Cor2], Tempo, Periodo);
 		/* Imprime resultados do atrator da celula */
 		if (Tempo < 8000)
@@ -392,7 +432,8 @@ void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const c
 						if (y[Cor2] <= Y2max)
 							//if(y[Cor2]<=Y1max)
 						{
-							fprintf(fd_thread, "%16.12e, %16.12e, %16.12e, %16.12e,", xo[Cor1], xo[Cor2], y[Cor1], y[Cor2]);
+							fprintf(fd_thread, "%d, %16.12e, %16.12e, %16.12e, %16.12e,", 
+								i + cell_inicio + 1, xo[Cor1], xo[Cor2], y[Cor1], y[Cor2]);
 							for (j = 0; j < Nequ; j = j + 2)
 							{
 								fprintf(fd_thread, "%16.12e,  %16.12e,  ", y[j], y[j + 1]);
@@ -424,30 +465,9 @@ int DoubToInt(double doub)
 }
 
 
-
-/* ===========================  Tempo  ===========================*/
-void Tempo(double number)
-{
-	double fraction, hour, minute, second;
-
-	number = number / 3600.0;
-	fraction = modf(number,&hour);
-	fraction = fraction * 60.0;
-    fraction = modf(fraction,&minute);
-    second   = fraction * 60.0;
-	printf("\nTempo total de processo  ===> %2.0fh : %2.0fm : %4.2fs\n",hour,
-		     minute, second);
-	return;
-}  
-
-
 /* ===========================  main  ===========================*/
 void main(void)
 {
-  double temp;
-  long time_init, time_fim;
-  
-  time_init=clock();
 
   printf("===============Calculo de Bacias de Atracao============\n");
   printf("==================Metodo  da Forca Bruta===============\n\n\n");
@@ -455,10 +475,6 @@ void main(void)
 
   //printf("entrei em Cells\n");
   CellsTrajec(  );
-
-  time_fim=clock()-time_init;
-  temp = (double)time_fim/CLK_TCK;
-  Tempo(temp);
  
 }
 
