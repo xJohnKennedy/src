@@ -218,6 +218,7 @@ int main(void)
 	printf("\t [2]:leitura do arquivo Kutta.dat e definicao das condicoes inicias dada pelo user\n");
 	printf("\t [3]:leitura do arquivo Kutta.dat e definicao das condicoes inicias dada pela leitura do arquivo poincare.txt\n");
 	printf("\t [4]:leitura do arquivo Kutta.dat e definicao das condicoes inicias dada pela leitura do arquivo force_log.txt\n");
+	printf("\t [5]:leitura do arquivo Kutta.dat e definicao das condicoes inicias dada pela leitura do arquivo force.txt\n");
 	printf("-------------------------------------------------------------\n");
 	printf(" Escolha uma opcao : ");
 	scanf("%d", &modo_leitura);
@@ -232,7 +233,8 @@ int main(void)
 		{
 			Xo[id_eq] = valor_condicao_inicial;
 		}
-	}	else if (modo_leitura == 3)
+	}
+	else if (modo_leitura == 3)
 	{
 		printf("\n\n Entre com o valor da linha a ser lida no arquivo poincare.txt : ");
 		scanf("%d", &linha_poincare);
@@ -271,7 +273,8 @@ int main(void)
 
 		}
 		fclose(fd_poincare);
-	} else if (modo_leitura == 4)
+	} 
+	else if (modo_leitura == 4)
 	{
 		printf("\n\n Entre com o valor da linha a ser lida no arquivo force_log.txt : ");
 		scanf("%d", &linha_force);
@@ -305,6 +308,49 @@ int main(void)
 				fscanf(fd_force, "%lf ,", &lixo);
 				fscanf(fd_force, "%lf ,", &Wf);
 				for (id_eq =0 ; id_eq < Nequ; id_eq = id_eq + 2)
+					fscanf(fd_force, "%lf , %lf , %lf , %lf ,", &Xo[id_eq], &Xo[id_eq + 1], &lixo, &lixo);
+				fscanf(fd_force, "%d \n", &lixo_d);
+				break;
+			}
+
+		}
+		fclose(fd_force);
+	}
+	else if (modo_leitura == 5)
+	{
+		printf("\n\n Entre com o valor da linha a ser lida no arquivo force.txt : ");
+		scanf("%d", &linha_force);
+
+		FILE *fd_force;
+		char str[256];
+		int linha_countador = 0;
+		double lixo;
+		int lixo_d;
+
+		fd_force = fopen("force.txt", "r");
+		if (fd_force == NULL)
+		{
+			printf("\n Nao foi possivel abrir arquivo de saida!\n");
+			exit(0);
+			return 0;
+		}
+		// testa se chegou no fim do arquivo
+		while (!feof(fd_force))
+		{
+			linha_countador++;
+			if (linha_countador != linha_force) // não chegou na linha desejada
+			{
+				while (getc(fd_force) != 10)
+					// le todos os caracteres ate encontrar um salto de linha "\n"
+					// que na tabela ASCII tem valor 10
+				{
+
+				}
+			}
+			else {
+				fscanf(fd_force, "%lf ,", &lixo);
+				fscanf(fd_force, "%lf ,", &Wf);
+				for (id_eq = 0; id_eq < Nequ; id_eq = id_eq + 2)
 					fscanf(fd_force, "%lf , %lf , %lf , %lf ,", &Xo[id_eq], &Xo[id_eq + 1], &lixo, &lixo);
 				fscanf(fd_force, "%d \n", &lixo_d);
 				break;
