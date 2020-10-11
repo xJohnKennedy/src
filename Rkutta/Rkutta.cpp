@@ -215,11 +215,11 @@ int main(void)
 
 	printf("\n Escolha o modo de leitura do arquivo Kutta.dat :\n\n");
 	printf("\t [1]:leitura direta do arquivo Kutta.dat\n");
-	printf("\t [2]:leitura do arquivo Kutta.dat e definicao das condicoes inicias dada pelo user\n");
-	printf("\t [3]:leitura do arquivo Kutta.dat e definicao das condicoes inicias dada pela leitura do arquivo poincare.txt\n");
-	printf("\t [4]:leitura do arquivo Kutta.dat e definicao das condicoes inicias dada pela leitura do arquivo force_log.txt\n");
-	printf("\t [5]:leitura do arquivo Kutta.dat e definicao das condicoes inicias dada pela leitura do arquivo force.txt\n");
-	printf("\t [6]:leitura do arquivo Kutta.dat e definicao das condicoes inicias dada pela leitura do arquivo bacia_results.txt\n");
+	printf("\t [2]:leitura do Kutta.dat e definicao das condicoes inicias dada pelo user\n");
+	printf("\t [3]: ... definicao das condicoes inicias dada pela leitura do arquivo poincare.txt\n");
+	printf("\t [4]: ... definicao das condicoes inicias dada pela leitura do arquivo force_log.txt\n");
+	printf("\t [5]: ... definicao das condicoes inicias dada pela leitura do arquivo force.txt\n");
+	printf("\t [6]: ... definicao das condicoes inicias dada pela leitura do arquivo bacia_results.txt\n");
 	printf("-------------------------------------------------------------\n");
 	printf(" Escolha uma opcao : ");
 	scanf("%d", &modo_leitura);
