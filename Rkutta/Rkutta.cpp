@@ -215,10 +215,11 @@ int main(void)
 
 	printf("\n Escolha o modo de leitura do arquivo Kutta.dat :\n\n");
 	printf("\t [1]:leitura direta do arquivo Kutta.dat\n");
-	printf("\t [2]:leitura do arquivo Kutta.dat e definicao das condicoes inicias dada pelo user\n");
-	printf("\t [3]:leitura do arquivo Kutta.dat e definicao das condicoes inicias dada pela leitura do arquivo poincare.txt\n");
-	printf("\t [4]:leitura do arquivo Kutta.dat e definicao das condicoes inicias dada pela leitura do arquivo force_log.txt\n");
-	printf("\t [5]:leitura do arquivo Kutta.dat e definicao das condicoes inicias dada pela leitura do arquivo force.txt\n");
+	printf("\t [2]:leitura do Kutta.dat e definicao das condicoes inicias dada pelo user\n");
+	printf("\t [3]: ... definicao das condicoes inicias dada pela leitura do arquivo poincare.txt\n");
+	printf("\t [4]: ... definicao das condicoes inicias dada pela leitura do arquivo force_log.txt\n");
+	printf("\t [5]: ... definicao das condicoes inicias dada pela leitura do arquivo force.txt\n");
+	printf("\t [6]: ... definicao das condicoes inicias dada pela leitura do arquivo bacia_results.txt\n");
 	printf("-------------------------------------------------------------\n");
 	printf(" Escolha uma opcao : ");
 	scanf("%d", &modo_leitura);
@@ -358,6 +359,49 @@ int main(void)
 
 		}
 		fclose(fd_force);
+	}
+	else if (modo_leitura == 6)
+	{
+	printf("\n\n Entre com o valor da linha a ser lida no arquivo bacia_results.txt : ");
+	scanf("%d", &linha_force);
+
+	FILE *fd_bacia;
+	char str[256];
+	int linha_countador = 0;
+	double lixo;
+	int lixo_d;
+
+	fd_bacia = fopen("bacia_results.txt", "r");
+	if (fd_bacia == NULL)
+	{
+		printf("\n Nao foi possivel abrir arquivo de saida!\n");
+		exit(0);
+		return 0;
+	}
+	// testa se chegou no fim do arquivo
+	while (!feof(fd_bacia))
+	{
+		linha_countador++;
+		if (linha_countador != linha_force) // não chegou na linha desejada
+		{
+			while (getc(fd_bacia) != 10)
+				// le todos os caracteres ate encontrar um salto de linha "\n"
+				// que na tabela ASCII tem valor 10
+			{
+
+			}
+		}
+		else {
+			fscanf(fd_bacia, "%d ,", &lixo);
+			fscanf(fd_bacia, "%lf , %lf , %lf , %lf ,", &lixo, &lixo, &lixo, &lixo);
+			for (id_eq = 0; id_eq < Nequ; id_eq = id_eq + 2)
+				fscanf(fd_bacia, "%lf , %lf ,", &Xo[id_eq], &Xo[id_eq + 1]);
+			fscanf(fd_bacia, "%d \n", &lixo_d);
+			break;
+		}
+
+	}
+	fclose(fd_bacia);
 	}
 
 	// atualiza o periodo e Step caso nas leituras do force_log.txt ou poincare.txt
