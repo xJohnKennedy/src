@@ -101,8 +101,7 @@ def gera_plot(path, data, ler, shape, total_variaveis):
         pyplot.close('all')
 
 
-# %%
-if __name__ == "__main__":
+def main_func():
     path = cria_pasta_plots()
     data = ler_dados()
     shape = data.shape
@@ -112,3 +111,8 @@ if __name__ == "__main__":
         ler = shape[0]
     total_variaveis = (shape[1] - 1) / 2
     gera_plot(path, data, ler, shape, total_variaveis)
+
+
+# %%
+if __name__ == "__main__":
+    main_func()
