@@ -1,4 +1,5 @@
 import secao_de_poicare_plots as poincare
+import os
 
 if __name__ == "__main__":
     msg: str = "\n" + "[1]: plotar secao de Poincare\n" + \
@@ -10,3 +11,4 @@ if __name__ == "__main__":
 
     if user_input == 1:
         poincare.main_func()
+        os.system("pause")
