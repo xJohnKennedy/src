@@ -56,7 +56,7 @@ def ler_dados(pontos):
 
 # %%
 # funcao gera e imprime grafico
-def gera_plot(path, data, total_variaveis, correcao_frequencia):
+def gera_plot(path, data, total_variaveis, correcao_frequencia, pontos):
     import hashName
     pasta_hash: str = hashName.nome_hash(os.getcwd() + "\\" + path)
     for variavel in range(1, int(total_variaveis + 1)):
@@ -69,7 +69,10 @@ def gera_plot(path, data, total_variaveis, correcao_frequencia):
         # figura deve ser definida como subplots e retornas os axes para posterior configuracao do tick format
         fig, ax = pyplot.subplots(1, 1, figsize=(10, 10))
 
-        Data_caminhos = [0, 1]
+        Data_caminhos = []
+        for i in range(len(pontos)):
+            Data_caminhos.append(i)
+
         minData1X = 1e9
         maxData1X = -1e9
         minData1Y = 1e9
@@ -83,14 +86,14 @@ def gera_plot(path, data, total_variaveis, correcao_frequencia):
             for j in range(0, shape[0]):
                 data_1__y.append(data[i][j, col])
                 data_1__x.append(data[i][j, 1] * correcao_frequencia)
-            print("Nummero de pontos caminho %i = %i" % (i + 1, shape[0]))
+            print("Nummero de pontos caminho %s = %i" % (pontos[i], shape[0]))
 
             config_plot = dict(marker='o', color='blue', s=10)
             pyplot.scatter(data_1__x, data_1__y, **config_plot)
 
             # saving file to load in another python file
             # https://stackoverflow.com/questions/48912527/how-to-join-two-matplotlib-figures
-            np.savez(path + nomde_grafico + '_c_' + str(i + 1) + '.npz',
+            np.savez(path + nomde_grafico + '_c_' + str(pontos[i]) + '.npz',
                      method='scatter',
                      args=(data_1__x, data_1__y),
                      kwargs=config_plot)
@@ -134,4 +137,4 @@ if __name__ == "__main__":
     if (correcao_frequencia == None):
         correcao_frequencia = 1.0
     total_variaveis = (shape[1] - 4) / 4
-    gera_plot(path, data, total_variaveis, correcao_frequencia)
+    gera_plot(path, data, total_variaveis, correcao_frequencia, pontos)
