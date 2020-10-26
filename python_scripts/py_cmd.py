@@ -1,4 +1,5 @@
 import secao_de_poicare_plots as poincare
+import plano_fase_plots as planoFase
 import os
 
 if __name__ == "__main__":
@@ -11,4 +12,11 @@ if __name__ == "__main__":
 
     if user_input == 1:
         poincare.main_func()
+        os.system("pause")
+    elif user_input == 2:
+        planoFase.main_func()
+        os.system("pause")
+    elif user_input == 4:
+        poincare.main_func()
+        planoFase.main_func()
         os.system("pause")
