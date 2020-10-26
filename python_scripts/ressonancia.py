@@ -32,9 +32,12 @@ pyplot.rcParams['agg.path.chunksize'] = 10000
 
 # %%
 # pasta onde armazena os plots
-def cria_pasta_plots():
+def cria_pasta_plots(pontos):
 
-    path = "ressonancia\\"
+    path = "ressonancia"
+    for i in pontos:
+        path = path + "_c%s" % (i)
+    path = path + "\\"
     if not os.path.exists(path):
         os.makedirs(path)
     return path
@@ -42,12 +45,12 @@ def cria_pasta_plots():
 
 # %%
 # import data
-def ler_dados():
+def ler_dados(pontos):
     data = []
-    data.append(
-        pandas.read_csv("..\\ponto 1\\force.txt", header=None).to_numpy())
-    data.append(
-        pandas.read_csv("..\\ponto 2\\force.txt", header=None).to_numpy())
+    for i in pontos:
+        data.append(
+            pandas.read_csv("..\\ponto %s\\force.txt" % (i),
+                            header=None).to_numpy())
     return data
 
 
@@ -121,8 +124,10 @@ def gera_plot(path, data, total_variaveis, correcao_frequencia):
 
 # %%
 if __name__ == "__main__":
-    path = cria_pasta_plots()
-    data = ler_dados()
+    pontos = str(input("Caminhos para plotar <caminho 1,caminho 2>: "))
+    pontos = pontos.split(",")
+    path = cria_pasta_plots(pontos)
+    data = ler_dados(pontos)
     shape = data[0].shape
     # correcao de frequencia
     correcao_frequencia = None
