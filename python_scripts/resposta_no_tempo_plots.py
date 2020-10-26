@@ -99,13 +99,12 @@ def copia_runge_kutta(path):
     os.system(comando)
 
 
-def main_func():
+def main_func(ler=6000):
     path = cria_pasta_plots()
     data = ler_dados()
     shape = data.shape
     # numero de seções a serem lidas
-    ler = 6000
-    if (ler == None or ler > shape[0]):
+    if (ler == -1 or ler == None or ler > shape[0]):
         ler = shape[0]
     total_variaveis = (shape[1] - 1) / 2
     gera_plot(path, data, ler, shape, total_variaveis)
