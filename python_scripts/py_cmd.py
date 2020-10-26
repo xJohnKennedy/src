@@ -1,5 +1,6 @@
 import secao_de_poicare_plots as poincare
 import plano_fase_plots as planoFase
+import resposta_no_tempo_plots as respostaNoTempo
 import os
 
 if __name__ == "__main__":
@@ -15,6 +16,9 @@ if __name__ == "__main__":
         os.system("pause")
     elif user_input == 2:
         planoFase.main_func()
+        os.system("pause")
+    elif user_input == 3:
+        respostaNoTempo.main_func()
         os.system("pause")
     elif user_input == 4:
         poincare.main_func()
