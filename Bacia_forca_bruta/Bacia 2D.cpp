@@ -427,7 +427,7 @@ void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const c
 		printf("%5d  /%6d / %6d", nome_thread, i + cell_inicio, cell_fim);
 		printf("   %15.12e   %15.12e %8d  %2d  \n", y[Cor1], y[Cor2], Tempo, Periodo);
 		/* Imprime resultados do atrator da celula */
-		if (Tempo < 8000)
+		if (Tempo < 8000 || retorno == 0)
 		{
 			if (Y1min <= y[Cor1])
 				//if(Y2min<=y[Cor1])
