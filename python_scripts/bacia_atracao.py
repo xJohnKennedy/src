@@ -91,6 +91,7 @@ def gera_plot(path, data, total_linhas, correcao_frequencia):
                 break
         #monta e pesquisa os pontos proximos
         if flag_convergiu == True:
+            #https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.KDTree.query_ball_point.html#scipy.spatial.KDTree.query_ball_point
             tree = spatial.KDTree(listaAtratores)
             pontosProximos = tree.query_ball_point(
                 listaAtratores[id_periodico], 0.01)
@@ -101,16 +102,23 @@ def gera_plot(path, data, total_linhas, correcao_frequencia):
                 pontosProximos[i] = i
 
         #definida a lista de pontos proximos determina para ela um nivel de plotagem em base de 2
+        listaPontosExcluir = []
+        indice = 0
         for i in pontosProximos:
             norma = 2**nivel
             indiceBuscarData = listaIndices[i]
-            numCelula = abs(data[indiceBuscarData][0])
+            numCelula = data[indiceBuscarData][0]
+            if numCelula < 0 and flag_convergiu == True:
+                listaPontosExcluir.append(indice)
             # define linha em x
+            numCelula = abs(numCelula)
             x_l = int((numCelula - 1) / n_div_y)
             y_l = int((numCelula - 1) % n_div_y)
             z0[y_l, x_l] = norma
+            indice += 1
 
-        #deleta os pontos proximos encontrados
+        #deleta os pontos proximos encontrados mas que nao convergiram da lista de pontos proximos
+        pontosProximos = np.delete(pontosProximos, listaPontosExcluir, 0)
         #pontosProximos = np.insert(pontosProximos, 1, id_periodico)
         listaAtratores = np.delete(listaAtratores, pontosProximos, 0)
         listaIndices = np.delete(listaIndices, pontosProximos)
