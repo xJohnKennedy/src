@@ -61,24 +61,74 @@ def gera_plot(path, data, total_linhas, correcao_frequencia):
     y, x = np.mgrid[slice(-5 - dy / 2, 5 + dy, dy),
                     slice(-5 - dx / 2, 5 + dx, dx)]
 
-    #computando norma de z
     z = []
     z0 = np.zeros((n_div_x, n_div_y))
 
-    for i in data:
-        norma = np.linalg.norm(np.array([i[3], i[4]]), 2)
-        z.append(norma)
+    ################
+    #cria um array com os atratorez de cada célula
+    from scipy import spatial
 
-        # define linha em x
-        x_l = int((i[0] - 1) / n_div_y)
-        y_l = int((i[0] - 1) % n_div_y)
-        z0[y_l, x_l] = norma
+    listaAtratores = np.zeros((total_linhas, 2))
+    listaIndices = np.zeros(total_linhas, dtype='int32')
+    for i in range(total_linhas):
+        listaAtratores[i] = np.array([data[i][3], data[i][4]])
+        listaIndices[i] = i
+
+    ## variavel de controle do nível de plotagem de cada atrator
+    nivel = 6
+
+    #verifica se a lista de atratores nao esta vazia
+    while listaAtratores.size != 0:
+        id_periodico = 0
+        flag_convergiu = False
+        #pesquisa os atratores que convergiram
+        while (id_periodico + 1) < listaIndices.size:
+            indice = data[listaIndices[id_periodico]][0]
+            if indice < 0:
+                id_periodico = id_periodico + 1
+            else:
+                flag_convergiu = True
+                break
+        #monta e pesquisa os pontos proximos
+        if flag_convergiu == True:
+            #https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.KDTree.query_ball_point.html#scipy.spatial.KDTree.query_ball_point
+            tree = spatial.KDTree(listaAtratores)
+            pontosProximos = tree.query_ball_point(
+                listaAtratores[id_periodico], 0.01)
+            print(pontosProximos)
+        else:
+            pontosProximos = np.zeros(listaIndices.size, dtype='int32')
+            for i in range(listaIndices.size):
+                pontosProximos[i] = i
+
+        #definida a lista de pontos proximos determina para ela um nivel de plotagem em base de 2
+        listaPontosExcluir = []
+        indice = 0
+        for i in pontosProximos:
+            norma = 2**nivel
+            indiceBuscarData = listaIndices[i]
+            numCelula = data[indiceBuscarData][0]
+            if numCelula < 0 and flag_convergiu == True:
+                listaPontosExcluir.append(indice)
+            # define linha em x
+            numCelula = abs(numCelula)
+            x_l = int((numCelula - 1) / n_div_y)
+            y_l = int((numCelula - 1) % n_div_y)
+            z0[y_l, x_l] = norma
+            indice += 1
+
+        #deleta os pontos proximos encontrados mas que nao convergiram da lista de pontos proximos
+        pontosProximos = np.delete(pontosProximos, listaPontosExcluir, 0)
+        #pontosProximos = np.insert(pontosProximos, 1, id_periodico)
+        listaAtratores = np.delete(listaAtratores, pontosProximos, 0)
+        listaIndices = np.delete(listaIndices, pontosProximos)
+        nivel -= 1
 
     from matplotlib.colors import BoundaryNorm
     from matplotlib.ticker import MaxNLocator
     from matplotlib.colors import ListedColormap
 
-    levels = MaxNLocator(nbins=15).tick_values(0, max(z))
+    levels = MaxNLocator(nbins=15).tick_values(0, 64)
 
     cmap = ListedColormap(
         ["white", "blue", "yellow", "green", "red", "gray", "black"])
