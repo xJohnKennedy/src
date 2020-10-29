@@ -161,6 +161,7 @@ void main( void )
 {
 	int k,i,j, ij, flag, periodo, retorno;
 	double alpha, derro;
+	double alpha_final;
 	FILE *fd, *fd_log;
 
 	// buffer de armazenamento  do output
@@ -191,31 +192,50 @@ void main( void )
 		}
 
 		/* Calculo do parametro de controle */
-		alpha = alphamin + (k-1)*(alphamax - alphamin)/(K-1);
+		alpha = alphamin + (k-1)*(alphamax - alphamin) / (K - 1);
 		printf("alpha: %.6f \r", alpha);
 
-		/* Calculo do periodo do sistema quando o parametro eh a frequencia ==> Param_freq = 1 */
-		if(Param_freq) 
-		{
-			Wf = alpha;   
-			Tf = 2*Pi / Wf;
-		}
-		else
-		{
-			Tf = 2*Pi / Wf;
-		}
-		Step = Tf / Ndiv;   
-
-		int flag_orbita = 1;
-		int flag_Nt = 1;
 		int num_iter = 0;
-		periodo = 1;
-
 		/* Imprime ponto inicial  de cada iteracao para possivel reproducao do passo com runge kutta  */
 		fprintf(fd_log, "%d,  %10.6e,  ", k, alpha);
 		for (j = 0; j < Nequ; j = j + 2)
 			fprintf(fd_log, "%16.12e,  %16.12e,  %16.12e,  %16.12e,  ", x[j], x[j + 1], y_max[j], y_max[j + 1]);
 		fprintf(fd_log, "1 , %d\n", num_iter);
+
+		/* Calculo do periodo do sistema quando o parametro eh a frequencia ==> Param_freq = 1 */
+		//parametro de controle é a frequencia Wf entao Param_freq == 1
+		//parametro de controle é a carga PL entao  Param_freq == 2
+		if(Param_freq == 1) 
+		{
+			Wf = alpha;   
+			Tf = 2*Pi / Wf;
+			alpha_final = alpha;
+			//printf("Parametro de controle e a frequencia! \n");
+		}
+		else
+		{
+			Tf = 2 * Pi / Wf;
+
+			if (Param_freq == 2)
+			{
+				// como o runge kutta foi escrito tomando como base que o parametro de controle é a frequencia
+				// faz-se necessario reorganizar as variaveis globais que estao sendo alteradas neste caso o PL
+				PL = alpha;
+				alpha_final = PL;
+				alpha = Wf;
+				//printf("Parametro de controle e a carga PL! \n");
+			}
+			else 
+			{
+				printf("\n Nao foi possivel reconhecer o parametro de controle (%d) lido!\n", Param_freq);
+				return;
+			}
+		}
+		Step = Tf / Ndiv;   
+
+		int flag_orbita = 1;
+		int flag_Nt = 1;
+		periodo = 1;
 
 		/* Iteracoes para eliminar a parte transiente  */
 		// Regras de saída do while-loop
@@ -269,7 +289,7 @@ void main( void )
 				{
 
 					/* Imprime ponto fixo calculado  */
-					cx = sprintf(buffer_temp + cx, "%d,  %10.6e,  ", k, alpha) + cx;
+					cx = sprintf(buffer_temp + cx, "%d,  %10.6e,  ", k, alpha_final) + cx;
 					for (j = 0; j < Nequ; j = j + 2)
 						cx = sprintf(buffer_temp + cx, "%16.12e,  %16.12e,  %16.12e,  %16.12e,  ", x[j], x[j + 1], y_max[j], y_max[j + 1]) + cx;
 					cx = sprintf(buffer_temp + cx, "%d, %d", periodo, num_iter + periodo) + cx;
@@ -283,7 +303,7 @@ void main( void )
 					flag_orbita = 0;
 
 					/* Imprime ponto fixo calculado  */
-					cx = sprintf(buffer_temp + cx, "%d,  %10.6e,  ", k, alpha) + cx;
+					cx = sprintf(buffer_temp + cx, "%d,  %10.6e,  ", k, alpha_final) + cx;
 					for (j = 0; j < Nequ; j = j + 2)
 						cx = sprintf(buffer_temp + cx, "%16.12e,  %16.12e,  %16.12e,  %16.12e,  ", x[j], x[j + 1], y_max[j], y_max[j + 1]) + cx;
 
