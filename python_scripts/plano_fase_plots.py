@@ -61,9 +61,13 @@ def juntar_plots(ax, files):
 # %%
 # funcao gera e imprime grafico
 def gera_plot(path, data, ler, shape, total_variaveis):
+
+    import hashName
+    pasta_hash: str = hashName.nome_hash(os.getcwd() + "\\" + path)
+
     for variavel in range(1, int(total_variaveis + 1)):
 
-        nomde_grafico = 'Plano fase C' + str(variavel)
+        nomde_grafico = pasta_hash[0:11] + '_PlanoFase_C' + str(variavel)
         print(nomde_grafico)
         print("total de pontos plotados = %d" % (ler))
 
@@ -81,7 +85,9 @@ def gera_plot(path, data, ler, shape, total_variaveis):
 
         #tenta juntar o plot da secao de poicanre se ela existir com o plot do plano fase
         try:
-            juntar_plots(ax, [path + "poincare_C%d.npz" % (variavel)])
+            juntar_plots(
+                ax,
+                [path + pasta_hash[0:11] + "_poincare_C%d.npz" % (variavel)])
         except:
             None
 
@@ -89,7 +95,7 @@ def gera_plot(path, data, ler, shape, total_variaveis):
         pyplot.plot(data_1__x, data_1__y, **config_plot)
 
         # saving file to load in another python file
-        np.savez(path + "plano_fase_C%d.npz" % (variavel),
+        np.savez(path + pasta_hash[0:11] + "plano_fase_C%d.npz" % (variavel),
                  method='plot',
                  args=(data_1__x, data_1__y),
                  kwargs=config_plot)
@@ -117,14 +123,24 @@ def gera_plot(path, data, ler, shape, total_variaveis):
         pyplot.close('all')
 
 
-# %%
-if __name__ == "__main__":
+def copia_runge_kutta(path):
+    print("\nCopiando Kutta.dat")
+    comando: str = "copy /v Kutta.dat %s" % (path)
+    os.system(comando)
+
+
+def main_func(ler=None):
     path = cria_pasta_plots()
     data = ler_dados()
     shape = data.shape
     # numero de seções a serem lidas
-    ler = None
     if (ler == None or ler > shape[0]):
         ler = shape[0]
     total_variaveis = (shape[1] - 1) / 2
     gera_plot(path, data, ler, shape, total_variaveis)
+    copia_runge_kutta(path)
+
+
+# %%
+if __name__ == "__main__":
+    main_func()

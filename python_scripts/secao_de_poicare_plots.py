@@ -50,9 +50,13 @@ def ler_dados():
 # %%
 # funcao gera e imprime grafico
 def gera_plot(path, data, ler, shape, total_variaveis):
+
+    import hashName
+    pasta_hash: str = hashName.nome_hash(os.getcwd() + "\\" + path)
+
     for variavel in range(1, int(total_variaveis + 1)):
 
-        nomde_grafico = 'Secao de poincare C' + str(variavel)
+        nomde_grafico = pasta_hash[0:11] + '_SecaoPoincare_C' + str(variavel)
         print(nomde_grafico)
         print("total de pontos plotados = %d" % (ler))
 
@@ -73,7 +77,7 @@ def gera_plot(path, data, ler, shape, total_variaveis):
 
         # saving file to load in another python file
         # https://stackoverflow.com/questions/48912527/how-to-join-two-matplotlib-figures
-        np.savez(path + "poincare_C%d.npz" % (variavel),
+        np.savez(path + pasta_hash[0:11] + "_poincare_C%d.npz" % (variavel),
                  method='scatter',
                  args=(data_1__x, data_1__y),
                  kwargs=config_plot)
@@ -101,14 +105,24 @@ def gera_plot(path, data, ler, shape, total_variaveis):
         pyplot.close('all')
 
 
-# %%
-if __name__ == "__main__":
+def copia_runge_kutta(path):
+    print("\nCopiando Kutta.dat")
+    comando: str = "copy /v Kutta.dat %s" % (path)
+    os.system(comando)
+
+
+def main_func(ler=None):
     path = cria_pasta_plots()
     data = ler_dados()
     shape = data.shape
     # numero de seções a serem lidas
-    ler = None
     if (ler == None or ler > shape[0]):
         ler = shape[0]
     total_variaveis = (shape[1] - 1) / 2
     gera_plot(path, data, ler, shape, total_variaveis)
+    copia_runge_kutta(path)
+
+
+# %%
+if __name__ == "__main__":
+    main_func()
