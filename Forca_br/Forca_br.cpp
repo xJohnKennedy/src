@@ -44,6 +44,7 @@ FORCA BRUTA
 #include <stdlib.h>
 #include <math.h>
 #include <io.h>
+#include <ctime>
 
 /***************  Definicao de numero de equacoes  ********************/
 #include "_config_modelo/Nequ_config.h"
@@ -155,6 +156,12 @@ void Runge_Kutta(double *y, double alpha)
   return;
 }
 
+void hora_atual()
+{
+	std::time_t result = std::time(nullptr);
+	printf("==> %s", std::ctime(&result));
+}
+
 
 /*===========================  MAIN  ===========================*/
 void main( void )
@@ -183,6 +190,7 @@ void main( void )
 		
 	for(k=1;k<=K;k++)
 	{
+		hora_atual();
 		printf("Ponto: %d  / %d  \n",k,K);
 
 		/* Perturbacao para cada iteracao  */
@@ -322,6 +330,7 @@ void main( void )
 
 		fputs(buffer_temp,fd);
 	}
+	hora_atual();
 	fclose(fd);
 	return;
 }
