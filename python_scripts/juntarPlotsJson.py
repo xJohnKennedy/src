@@ -3,7 +3,7 @@
 # %%
 import matplotlib.pyplot as pyplot
 import numpy as np
-import os
+import os, sys
 import json
 
 # %%
@@ -39,7 +39,9 @@ def lerJson(nomeDoArquivo: str):
         dados = json.load(arquivo)
         return dados
     except:
-        os._exit()
+        print('###\nErro na leitura do arquivo (%s)\n' % (nomeDoArquivo))
+        os.system("pause")
+        sys.exit(2)
 
 
 # %%
@@ -70,7 +72,11 @@ def carrega_plot(nome):
         try:  #tenta carregar arquivo com a adicao do sufixo .npz
             data = np.load(nome + ".npz", allow_pickle=True)
         except:
-            os._exit()
+            print(
+                '###\nErro na leitura do arquivo (%s). Verificar o campo \"nomePlots\" no arquivo .json\n'
+                % (nome))
+            os.system("pause")
+            sys.exit(2)
 
     return data
 
