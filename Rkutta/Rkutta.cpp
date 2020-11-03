@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <chrono>
 
  /******************Declaracoes principais ******************/
 #include "_config_modelo/Kutta_header_config.h"
@@ -62,6 +63,29 @@ double Energia(double *q)
 
 	return (ener);
 }
+
+/* ===========================  Tempo  ===========================*/
+struct Tempo
+{
+	std::chrono::time_point<std::chrono::steady_clock> inicio, fim;
+	std::chrono::duration<double> duracao;
+
+public:
+	//constroi objeto
+	Tempo()
+	{
+		inicio = std::chrono::high_resolution_clock::now();
+	}
+	// destroi objeto
+	~Tempo()
+	{
+		fim = std::chrono::high_resolution_clock::now();
+		duracao = fim - inicio;
+
+		printf("\n->>Tempo de calculo do Runge Kutta : %f s\n", duracao);
+	}
+};
+
 
 /*===========================  NewData  ===========================*/
 
@@ -452,7 +476,9 @@ int main(void)
 
 	}
 
-
-	Runge_Kutta(Xo);
+	{
+		Tempo timer;
+		Runge_Kutta(Xo);
+	}
 	return 0;
 }
