@@ -254,7 +254,7 @@ int main(void)
 	{
 		printf("\n\n Entre com o valor da condicao inicial : ");
 		scanf("%lf", &valor_condicao_inicial);
-		for (int id_eq = 0; id_eq < Nequ; id_eq++)
+		for (id_eq = 0; id_eq < Nequ; id_eq++)
 		{
 			Xo[id_eq] = valor_condicao_inicial;
 		}
@@ -290,7 +290,7 @@ int main(void)
 				}
 			} else {
 				fscanf(fd_poincare, "%lf ,", &lixo);
-				for (id_eq =0 ; id_eq < (Nequ-1); id_eq++)
+				for (id_eq = 0 ; id_eq < (Nequ-1); id_eq++)
 					fscanf(fd_poincare, "%lf ,", &Xo[id_eq]);
 				fscanf(fd_poincare, "%lf \n", &Xo[id_eq++]);
 				break;
@@ -332,7 +332,7 @@ int main(void)
 			} else {
 				fscanf(fd_force, "%lf ,", &lixo);
 				fscanf(fd_force, "%lf ,", &Wf);
-				for (id_eq =0 ; id_eq < Nequ; id_eq = id_eq + 2)
+				for (id_eq = 0 ; id_eq < Nequ; id_eq = id_eq + 2)
 					fscanf(fd_force, "%lf , %lf , %lf , %lf ,", &Xo[id_eq], &Xo[id_eq + 1], &lixo, &lixo);
 				fscanf(fd_force, "%d \n", &lixo_d);
 				break;
