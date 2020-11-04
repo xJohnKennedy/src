@@ -31,6 +31,7 @@
 #include <math.h>
 #include <chrono>
 
+
  /******************Declaracoes principais ******************/
 #include "_config_modelo/Kutta_header_config.h"
 
@@ -129,6 +130,9 @@ void NewData(void)
 /*===========================  Runge_Kutta  ===========================*/
 static void Runge_Kutta(double *y)
 {
+	#ifdef _MONTA_VETOR  
+	monta_Vetor_ymm0(&Vetor_ymm0[0]);
+	#endif 
 
 	FILE *fdwrite, *fd;
 
