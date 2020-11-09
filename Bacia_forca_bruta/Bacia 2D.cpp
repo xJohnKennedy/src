@@ -339,7 +339,7 @@ void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const c
 	//int const cell_fim = valor de busca da ultima celula no vetor q1 e q1p
 
 	// declaracao das variaveis locais
-	int i, j, retorno, Periodo, PeriodoBack, flag;
+	int i, j, retorno, Periodo, PeriodoBack, flag, flag_periodica;
 	int value, ij, Tempo;
 	double x[Nequ], y[Nequ], y_old[Nequ], xo[Nequ], derro, zo0atr, zo1atr;
 
@@ -358,6 +358,7 @@ void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const c
 	int const total_celulas = cell_fim - cell_inicio + 1;
 	for (int i = 0; i < total_celulas; i++)
 	{
+		flag_periodica = -1;
 		/* Contador de Tempo e de periodicidade da solucao */
 		Tempo = 0;
 		Periodo = 0;
@@ -426,7 +427,7 @@ void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const c
 		printf("%5d  /%6d / %6d", nome_thread, i + cell_inicio, cell_fim);
 		printf("   %15.12e   %15.12e %8d  %2d  \n", y[Cor1], y[Cor2], Tempo, Periodo);
 		/* Imprime resultados do atrator da celula */
-		if (Tempo < 8000)
+		if (Tempo < 8000 || retorno == 0)
 		{
 			if (Y1min <= y[Cor1])
 				//if(Y2min<=y[Cor1])
@@ -440,18 +441,20 @@ void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const c
 						if (y[Cor2] <= Y2max)
 							//if(y[Cor2]<=Y1max)
 						{
-							fprintf(fd_thread, "%d, %16.12e, %16.12e, %16.12e, %16.12e,", 
-								i + cell_inicio + 1, xo[Cor1], xo[Cor2], y[Cor1], y[Cor2]);
-							for (j = 0; j < Nequ; j = j + 2)
-							{
-								fprintf(fd_thread, "%16.12e,  %16.12e,  ", y[j], y[j + 1]);
-							}
-							fprintf(fd_thread, "%5d\n", nome_thread);
+							flag_periodica = 1;
 						}
 					}
 				}
 			}
 		}
+
+		fprintf(fd_thread, "%d, %16.12e, %16.12e, %16.12e, %16.12e,",
+			(i + cell_inicio + 1)*flag_periodica, xo[Cor1], xo[Cor2], y[Cor1], y[Cor2]);
+		for (j = 0; j < Nequ; j = j + 2)
+		{
+			fprintf(fd_thread, "%16.12e,  %16.12e,  ", y[j], y[j + 1]);
+		}
+		fprintf(fd_thread, "%5d, %5d\n", Tempo, nome_thread);
 	}
 	
 	fclose(fd_thread);
