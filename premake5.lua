@@ -317,7 +317,7 @@ workspace "RUNGE_FORCA_BRUTA_BACIA"                   -- Solution Name
 	-------------------------------
 	-- [ PROJECT CONFIGURATION ] --
 	------------------------------- 
-	project "Bacia_forca_bruta_opencl"
+	project "Bacia_forca_bruta_placadevideo"
 		kind "ConsoleApp" -- "WindowApp" removes console
 		language "C"
 		

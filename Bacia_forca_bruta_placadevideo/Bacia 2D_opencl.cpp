@@ -262,10 +262,10 @@ void CellsTrajec(void)
 	int i, j, retorno, Periodo, PeriodoBack, flag, flag_periodica;
 	int value, ij, Tempo;
 	//declaracao dos dados do host
-	float*	x = (float *)malloc(Nequ*Num_cel);
-	float*	y = (float *)malloc(Nequ*Num_cel);
-	float*	y_old = (float *)malloc(Nequ*Num_cel);
-	float*	xo = (float *)malloc(Nequ*Num_cel);
+	float*	x = new float [Nequ*Num_cel];
+	float*	y = new float[Nequ*Num_cel];
+	float*	y_old = new float[Nequ*Num_cel];
+	float*	xo = new float[Nequ*Num_cel];
 	// declaracao dos atratores
 	float derro, zo0atr, zo1atr;
 
@@ -294,15 +294,15 @@ void CellsTrajec(void)
 		}
 
 		/* Coordenada de cada celula */
-		x[Cor1*Num_cel + i] = q1[i + cell_inicio];
-		x[Cor2*Num_cel + i] = q1p[i + cell_inicio];
+		x[Cor1*Num_cel + i] = (float) q1[i + cell_inicio];
+		x[Cor2*Num_cel + i] = (float) q1p[i + cell_inicio];
 
 		/* Coordenadas iniciais */
-		for (ij = 0; ij < Nequ; ij++)
+		for (int ij = 0; ij < Nequ; ij++)
 		{
 			y_old[ij*Num_cel + i] = x[ij*Num_cel + i];
 			xo[ij*Num_cel + i] = x[ij*Num_cel + i];
-			y[ij*Num_cel + i] = 0;
+			y[ij*Num_cel + i] = 0.0f;
 		}
 	}
 #if 0
