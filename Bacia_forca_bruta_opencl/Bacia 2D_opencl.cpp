@@ -184,6 +184,30 @@ void NewData(void)
 	return;
 }
 
+/* ===========================  Tempo  ===========================*/
+struct Tempo
+{
+	std::chrono::time_point<std::chrono::steady_clock> inicio, fim;
+	std::chrono::duration<double> duracao;
+	int nome_thd;
+
+public:
+	//constroi objeto
+	Tempo(int const i)
+	{
+		nome_thd = i;
+		inicio = std::chrono::high_resolution_clock::now();
+	}
+	// destroi objeto
+	~Tempo()
+	{
+		fim = std::chrono::high_resolution_clock::now();
+		duracao = fim - inicio;
+
+		printf("->>Tempo de calculo da thread %d : %f s\n", nome_thd, duracao);
+	}
+};
+
 /* ===========================  CellsTrajec  ===========================*/
 void CellsTrajec(void)
 {
@@ -214,134 +238,36 @@ void CellsTrajec(void)
 		exit(0);
 	}
 
-	std::thread* thd = new std::thread[n_max_thread];
-
-	// determina a quantidade maxima de celulas que serao calculadas por cada thread separamente
-	int temp = Num_cel / n_max_thread;
-	num_cells_thread = ceil(temp);
-	num_cells_thread = (int)num_cells_thread;
-	int resto = Num_cel - num_cells_thread * n_max_thread;
+	n_max_thread = 1;
 
 	/* Imprime cabecalho na tela */
 	printf("Thread  Numero            q1_atr               q1p_atr               Tempo   Periodicidade\n");
 
-	
-	int correcao_resto = 0;
-	int ini = 0, fim = 0;
+	int nome_thread = 1, cell_inicio = 0, cell_fim = Num_cel - 1;
 
-	/* Integracao no tempo para cada celula do espaco  */
-	// loop que percorre as threads e distribui as celulas
-	for (int i = 0; i < n_max_thread; i++)
-	{
-		//se o resto for maior que zero adiciona mais uma celula a thread
-		if (resto > 0)
-		{
-			ini = i * num_cells_thread + correcao_resto;
-			fim = (i + 1)*num_cells_thread - 1 + correcao_resto + 1;
-			thd[i] = std::thread(&CellsTrajec_core, i + 1, ini, fim);
-			//diminui resto
-			resto--;
-			//aumenta correcao
-			correcao_resto++;
-		}
-		else 
-		{
-			ini = i * num_cells_thread + correcao_resto;
-			fim = (i + 1)*num_cells_thread - 1 + correcao_resto;
-			thd[i] = std::thread(&CellsTrajec_core, i + 1, ini, fim);
-		}
-
-	}
-
-	//inicia threds e espera todas terminarem a execucao
-	for (int i = 0; i < n_max_thread; i++)
-		thd[i].join();
-
-	//system("pause");
-
-	FILE *fd_thread;
-	char arquivo_thd_leitura[50];
-	char temp_c;
-	int key_arquivo_leitura;
-	//transferade dados dos arquivos de cada thread para o arquivo raiz
-	for (int i = 0; i < n_max_thread; i++)
-	{
-		key_arquivo_leitura = sprintf(arquivo_thd_leitura, "bacia_results_%d.txt", i + 1);
-		fd_thread = fopen(arquivo_thd_leitura, "r");
-		if (fd_thread == NULL && key_arquivo_leitura != -1) {
-			printf("\n Nao foi possivel abrir arquivo de %s !\n", arquivo_thd_leitura);
-			exit(0);
-			return;
-		}
-
-		// le o conteudo do arquivo e grava no principal 
-		temp_c = fgetc(fd_thread);
-		while (temp_c != EOF)
-		{
-			fputc(temp_c, fd);
-			temp_c = fgetc(fd_thread);
-		}
-		fclose(fd_thread);
-
-		if (remove(arquivo_thd_leitura) == -1)
-		{
-			perror("Erro de remocao do arqivo:");
-		}
-	}
-
-	/*free(x);
-	free(y_old);
-	free(xo);
-	free(y);*/
-	fclose(fd);
-
-	return;
-}
-
-/* ===========================  Tempo  ===========================*/
-struct Tempo
-{
-	std::chrono::time_point<std::chrono::steady_clock> inicio, fim;
-	std::chrono::duration<double> duracao;
-	int nome_thd;
-
-public:
-	//constroi objeto
-	Tempo(int const i)
-	{
-		nome_thd = i;
-		inicio = std::chrono::high_resolution_clock::now();
-	}
-	// destroi objeto
-	~Tempo()
-	{
-		fim = std::chrono::high_resolution_clock::now();
-		duracao = fim - inicio;
-
-		printf("->>Tempo de calculo da thread %d : %f s\n", nome_thd, duracao);
-	}
-};
-
-
-void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const cell_fim)
-{
 	// inicializa timer
-	// como ele esta limitado ao escopo da funcao executada pela thread
-	// logo que a thread terminar e o escopo do timer acabar ele imprime a duracao
-	Tempo tempo(nome_thread);
+		// como ele esta limitado ao escopo da funcao executada pela thread
+		// logo que a thread terminar e o escopo do timer acabar ele imprime a duracao
+	Tempo tempo(1);
 
 	//imprime executanto thread
-	printf("Executando thread %2d: processo: %6d cell_init: %6d cell_fim: %6d\n", 
+	printf("Executando thread %2d: processo: %6d cell_init: %6d cell_fim: %6d\n",
 		nome_thread, std::this_thread::get_id(), cell_inicio, cell_fim);
 
 	//int const nome_thread = nome sequencial da thread utilizado para criar arquivo de saida
 	//int const cell_inicio = valor de busca da primeira celula no vetor q1 e q1p
 	//int const cell_fim = valor de busca da ultima celula no vetor q1 e q1p
 
-	// declaracao das variaveis locais
+	// declaracao das variaveis locais de controle
 	int i, j, retorno, Periodo, PeriodoBack, flag, flag_periodica;
 	int value, ij, Tempo;
-	double x[Nequ], y[Nequ], y_old[Nequ], xo[Nequ], derro, zo0atr, zo1atr;
+	//declaracao dos dados do host
+	float*	x = (float *)malloc(Nequ*Num_cel);
+	float*	y = (float *)malloc(Nequ*Num_cel);
+	float*	y_old = (float *)malloc(Nequ*Num_cel);
+	float*	xo = (float *)malloc(Nequ*Num_cel);
+	// declaracao dos atratores
+	float derro, zo0atr, zo1atr;
 
 	FILE *fd_thread;
 
@@ -356,6 +282,31 @@ void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const c
 	}
 
 	int const total_celulas = cell_fim - cell_inicio + 1;
+
+	//inicializa os dados de entrada de todas as celulas
+	for (int i = 0; i < total_celulas; i++)
+	{
+
+		// inicializa todas as variaveis 
+		for (int idx = 0; idx < Nequ; idx++)
+		{
+			x[idx*Num_cel + i] = 1e-4;
+		}
+
+		/* Coordenada de cada celula */
+		x[Cor1*Num_cel + i] = q1[i + cell_inicio];
+		x[Cor2*Num_cel + i] = q1p[i + cell_inicio];
+
+		/* Coordenadas iniciais */
+		for (ij = 0; ij < Nequ; ij++)
+		{
+			y_old[ij*Num_cel + i] = x[ij*Num_cel + i];
+			xo[ij*Num_cel + i] = x[ij*Num_cel + i];
+			y[ij*Num_cel + i] = 0;
+		}
+	}
+#if 0
+
 	for (int i = 0; i < total_celulas; i++)
 	{
 		flag_periodica = -1;
@@ -380,6 +331,7 @@ void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const c
 			xo[ij] = x[ij];
 			y[ij] = 0;
 		}
+
 		flag = 1;
 
 
@@ -456,10 +408,49 @@ void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const c
 		}
 		fprintf(fd_thread, "%5d, %5d\n", Tempo, nome_thread);
 	}
-	
-	fclose(fd_thread);
-}
 
+	fclose(fd_thread);
+
+	//system("pause");
+
+	FILE *fd_thread;
+	char arquivo_thd_leitura[50];
+	char temp_c;
+	int key_arquivo_leitura;
+	//transferade dados dos arquivos de cada thread para o arquivo raiz
+	for (int i = 0; i < n_max_thread; i++)
+	{
+		key_arquivo_leitura = sprintf(arquivo_thd_leitura, "bacia_results_%d.txt", i + 1);
+		fd_thread = fopen(arquivo_thd_leitura, "r");
+		if (fd_thread == NULL && key_arquivo_leitura != -1) {
+			printf("\n Nao foi possivel abrir arquivo de %s !\n", arquivo_thd_leitura);
+			exit(0);
+			return;
+		}
+
+		// le o conteudo do arquivo e grava no principal 
+		temp_c = fgetc(fd_thread);
+		while (temp_c != EOF)
+		{
+			fputc(temp_c, fd);
+			temp_c = fgetc(fd_thread);
+		}
+		fclose(fd_thread);
+
+		if (remove(arquivo_thd_leitura) == -1)
+		{
+			perror("Erro de remocao do arqivo:");
+		}
+	}
+
+	/*free(x);
+	free(y_old);
+	free(xo);
+	free(y);*/
+	fclose(fd);
+#endif // 1
+	return;
+}
 
 /* ===========================  DoubToInt  ===========================*/
 int DoubToInt(double doub)
