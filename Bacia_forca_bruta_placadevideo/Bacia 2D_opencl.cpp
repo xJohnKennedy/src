@@ -12,6 +12,10 @@
 
 #define _BACIA_C
 
+// inclusao dos cabecalhos do OpenlCL
+#define __CL_ENABLE_EXCEPTIONS
+#include <CL/cl.hpp>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -19,6 +23,7 @@
 #include <string.h>
 #include <chrono>
 #include <thread>
+#include <fstream>
 
 /******************Declaracoes principais ******************/
 #include "_config_modelo/Kutta_header_config.h"
@@ -160,7 +165,7 @@ void NewData(void)
 	/* Passo para integracao no tempo */
 	Passo = Tf / 500;
 
-	/* Alocaao de vetores para o tamanho da celula */
+	/* Alocacao na pilha de vetores para o tamanho da celula */
 	q1 = (double*)calloc(Num_cel, sizeof(double));
 	q1p = (double*)calloc(Num_cel, sizeof(double));
 
@@ -207,6 +212,33 @@ public:
 		printf("->>Tempo de calculo da thread %d : %f s\n", nome_thd, duracao);
 	}
 };
+
+void inicializaVariaveisdeEntrada(int const total_celulas, int const cell_inicio, float* x, float* y_old, float* xo, float* y) {
+
+	printf("\n Inicializando as variaveis de entrada. \n");
+	//inicializa os dados de entrada de todas as celulas
+	for (int i = 0; i < total_celulas; i++)
+	{
+
+		// inicializa todas as variaveis 
+		for (int idx = 0; idx < Nequ; idx++)
+		{
+			x[idx*Num_cel + i] = 1e-4;
+		}
+
+		/* Coordenada de cada celula */
+		x[Cor1*Num_cel + i] = (float)q1[i + cell_inicio];
+		x[Cor2*Num_cel + i] = (float)q1p[i + cell_inicio];
+
+		/* Coordenadas iniciais */
+		for (int ij = 0; ij < Nequ; ij++)
+		{
+			y_old[ij*Num_cel + i] = x[ij*Num_cel + i];
+			xo[ij*Num_cel + i] = x[ij*Num_cel + i];
+			y[ij*Num_cel + i] = 0.0f;
+		}
+	}
+}
 
 /* ===========================  CellsTrajec  ===========================*/
 void CellsTrajec(void)
@@ -283,27 +315,64 @@ void CellsTrajec(void)
 
 	int const total_celulas = cell_fim - cell_inicio + 1;
 
-	//inicializa os dados de entrada de todas as celulas
-	for (int i = 0; i < total_celulas; i++)
+	inicializaVariaveisdeEntrada(total_celulas, cell_inicio, x, y_old, xo, y);
+
+	// tipos de plataformas de opencl instalados na maquina
+	std::vector<cl::Platform> plataformas;
+	// dispositivos instalados na maquina por plataforma
+	std::vector<cl::Device> dispositivos;
+	//inicializa objeto para criar contexto para execucao nos dispositivos
+	cl::Context *contextoDispositivos;
+	// cria os buffers de memoria na GPU
+	cl::Buffer buffer_x;
+	cl::Buffer buffer_y;
+	// armazena os programas dos kernels 
+	std::vector<cl::Program> programa;
+
+	try
 	{
+		// chamada para obtencao das plataformas
+		cl::Platform::get(&plataformas);
 
-		// inicializa todas as variaveis 
-		for (int idx = 0; idx < Nequ; idx++)
+		// chamada para obtencao dos dispositivos conectados na plataforma
+		// busca somente a gpu
+		plataformas[0].getDevices(CL_DEVICE_TYPE_GPU, &dispositivos);
+
+		//inicializa objeto para criar contexto para execucao nos dispositivos
+		contextoDispositivos = new cl::Context(dispositivos);
+
+		//cria uma fila de comandos para o dispositivo GPU encotrado
+		cl::CommandQueue filaComandosGPU = cl::CommandQueue(contextoDispositivos[0], dispositivos[0]);
+
+		// cria os buffers de memoria na GPU
+		buffer_x = cl::Buffer(contextoDispositivos[0], CL_MEM_READ_WRITE, Nequ*Num_cel);
+		buffer_y = cl::Buffer(contextoDispositivos[0], CL_MEM_READ_WRITE, Nequ*Num_cel);
+
+		// copia os dados iniciais do host para a gpu 
+		filaComandosGPU.enqueueWriteBuffer(buffer_x, CL_TRUE, 0, Nequ*Num_cel, x);
+		filaComandosGPU.enqueueWriteBuffer(buffer_y, CL_TRUE, 0, Nequ*Num_cel, y);
+
+		char temp_buffer[50];
+		for (size_t i = 0; i < Nequ/2; i++)
 		{
-			x[idx*Num_cel + i] = 1e-4;
+			// lê o codigo fonte do kernel
+			sprintf(temp_buffer, ".\\_kernel_opencl\\kernel_f%d.cl", i+1);
+			std::ifstream codigoFonteArquivo(temp_buffer);
+			std::string codigoFonte(std::istreambuf_iterator<char>(codigoFonteArquivo), (std::istreambuf_iterator<char>()));
+			cl::Program::Sources fonte(1, std::make_pair(codigoFonte.c_str(), codigoFonte.length() + 1));
+
+			//inicializa programa
+			programa.push_back(cl::Program(contextoDispositivos[0], fonte));
+
+			//compila o codigo do kernel
+			printf("\n compilando kernel %d", i+1);
+			programa[i].build(dispositivos);
 		}
 
-		/* Coordenada de cada celula */
-		x[Cor1*Num_cel + i] = (float) q1[i + cell_inicio];
-		x[Cor2*Num_cel + i] = (float) q1p[i + cell_inicio];
-
-		/* Coordenadas iniciais */
-		for (int ij = 0; ij < Nequ; ij++)
-		{
-			y_old[ij*Num_cel + i] = x[ij*Num_cel + i];
-			xo[ij*Num_cel + i] = x[ij*Num_cel + i];
-			y[ij*Num_cel + i] = 0.0f;
-		}
+	}
+	catch (cl::Error error)
+	{
+		printf("\n%s ( %s )\n", error.what(), error.err());
 	}
 #if 0
 
@@ -313,24 +382,6 @@ void CellsTrajec(void)
 		/* Contador de Tempo e de periodicidade da solucao */
 		Tempo = 0;
 		Periodo = 0;
-
-		// inicializa todas as variaveis 
-		for (int idx = 0; idx < Nequ; idx++)
-		{
-			x[idx] = 1e-4;
-		}
-
-		/* Coordenada de cada celula */
-		x[Cor1] = q1[i + cell_inicio];
-		x[Cor2] = q1p[i + cell_inicio];
-
-		/* Coordenadas iniciais */
-		for (ij = 0; ij < Nequ; ij++)
-		{
-			y_old[ij] = x[ij];
-			xo[ij] = x[ij];
-			y[ij] = 0;
-		}
 
 		flag = 1;
 
@@ -476,7 +527,7 @@ void main(void)
   NewData(  );
 
   //printf("entrei em Cells\n");
-  CellsTrajec(  );
+  CellsTrajec();
  
 }
 
