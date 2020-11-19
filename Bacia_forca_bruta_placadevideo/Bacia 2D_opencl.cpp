@@ -54,8 +54,8 @@ ID3D11Device*               g_pDevice = nullptr;
 ID3D11DeviceContext*        g_pContext = nullptr;
 ID3D11ComputeShader*        g_pCS = nullptr;
 
-ID3D11Buffer*               g_pBuf0 = nullptr;
-ID3D11Buffer*               g_pBuf1 = nullptr;
+ID3D11Buffer*               g_pBufferX = nullptr;
+ID3D11Buffer*               g_pBufferY = nullptr;
 ID3D11Buffer*               g_pBufResult = nullptr;
 
 ID3D11ShaderResourceView*   g_pBuf0SRV = nullptr;
@@ -262,7 +262,7 @@ public:
 
 void inicializaVariaveisdeEntrada(int const total_celulas, int const cell_inicio, float* x, float* y_old, float* xo, float* y) {
 
-	printf("\n Inicializando as variaveis de entrada. \n");
+	//printf("\n Inicializando as variaveis de entrada. \n");
 	//inicializa os dados de entrada de todas as celulas
 	for (int i = 0; i < total_celulas; i++)
 	{
@@ -380,6 +380,13 @@ void CellsTrajec(void)
 	printf("OK\n");
 
 	vetorPonteiroComputeShader.push_back(g_pCS);
+
+	printf("Criando os buffers na memoria da placa de video...");
+	//buffer que contem as variaveis do sistema no inico de cada passo do RK
+	CreateRawBuffer(g_pDevice, Nequ*Num_cel * sizeof(float), &x[0], &g_pBufferX);
+	//buffer que armazena as variaveis do sistema no fim do passo do RK
+	CreateRawBuffer(g_pDevice, Nequ*Num_cel * sizeof(float), &y[0], &g_pBufferY);
+	printf("OK\n");
 
 
 #if 0
@@ -729,6 +736,31 @@ HRESULT FindDXSDKShaderFileCch(WCHAR* strDestPath,
 
 	return E_FAIL;
 }
+
+
+//--------------------------------------------------------------------------------------
+// Create Raw Buffer
+//--------------------------------------------------------------------------------------
+_Use_decl_annotations_
+HRESULT CreateRawBuffer(ID3D11Device* pDevice, UINT uSize, void* pInitData, ID3D11Buffer** ppBufOut)
+{
+	*ppBufOut = nullptr;
+
+	D3D11_BUFFER_DESC desc = {};
+	desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_INDEX_BUFFER | D3D11_BIND_VERTEX_BUFFER;
+	desc.ByteWidth = uSize;
+	desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+
+	if (pInitData)
+	{
+		D3D11_SUBRESOURCE_DATA InitData;
+		InitData.pSysMem = pInitData;
+		return pDevice->CreateBuffer(&desc, &InitData, ppBufOut);
+	}
+	else
+		return pDevice->CreateBuffer(&desc, nullptr, ppBufOut);
+}
+
 
 
 
