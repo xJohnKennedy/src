@@ -12,9 +12,15 @@
 
 #define _BACIA_C
 
-// inclusao dos cabecalhos do OpenlCL
-#define __CL_ENABLE_EXCEPTIONS
-#include <CL/cl.hpp>
+// inclusao dos cabecalhos do Directx
+#include <d3dcommon.h>
+#include <d3d11.h>
+#include <d3dcompiler.h>
+
+#ifndef SAFE_RELEASE
+#define SAFE_RELEASE(p)      { if (p) { (p)->Release(); (p)=nullptr; } }
+#endif
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,6 +30,7 @@
 #include <chrono>
 #include <thread>
 #include <fstream>
+#include <vector>
 
 /******************Declaracoes principais ******************/
 #include "_config_modelo/Kutta_header_config.h"
@@ -38,6 +45,46 @@ double Passo;
 double Y1min,Y1max,Y2min,Y2max;
 int Num_cel,Cor1,Cor2;
 double *q1,*q1p,*q2,*q2p;
+
+
+//--------------------------------------------------------------------------------------
+// Global variables
+//--------------------------------------------------------------------------------------
+ID3D11Device*               g_pDevice = nullptr;
+ID3D11DeviceContext*        g_pContext = nullptr;
+ID3D11ComputeShader*        g_pCS = nullptr;
+
+ID3D11Buffer*               g_pBuf0 = nullptr;
+ID3D11Buffer*               g_pBuf1 = nullptr;
+ID3D11Buffer*               g_pBufResult = nullptr;
+
+ID3D11ShaderResourceView*   g_pBuf0SRV = nullptr;
+ID3D11ShaderResourceView*   g_pBuf1SRV = nullptr;
+ID3D11UnorderedAccessView*  g_pBufResultUAV = nullptr;
+
+//--------------------------------------------------------------------------------------
+// Forward declarations 
+//--------------------------------------------------------------------------------------
+HRESULT CreateComputeDevice(_Outptr_ ID3D11Device** ppDeviceOut, _Outptr_ ID3D11DeviceContext** ppContextOut, _In_ bool bForceRef);
+HRESULT CreateComputeShader(_In_z_ LPCWSTR pSrcFile, _In_z_ LPCSTR pFunctionName,
+	_In_ ID3D11Device* pDevice, _Outptr_ ID3D11ComputeShader** ppShaderOut);
+HRESULT CreateStructuredBuffer(_In_ ID3D11Device* pDevice, _In_ UINT uElementSize, _In_ UINT uCount,
+	_In_reads_(uElementSize*uCount) void* pInitData,
+	_Outptr_ ID3D11Buffer** ppBufOut);
+HRESULT CreateRawBuffer(_In_ ID3D11Device* pDevice, _In_ UINT uSize, _In_reads_(uSize) void* pInitData, _Outptr_ ID3D11Buffer** ppBufOut);
+HRESULT CreateBufferSRV(_In_ ID3D11Device* pDevice, _In_ ID3D11Buffer* pBuffer, _Outptr_ ID3D11ShaderResourceView** ppSRVOut);
+HRESULT CreateBufferUAV(_In_ ID3D11Device* pDevice, _In_ ID3D11Buffer* pBuffer, _Outptr_ ID3D11UnorderedAccessView** pUAVOut);
+ID3D11Buffer* CreateAndCopyToDebugBuf(_In_ ID3D11Device* pDevice, _In_ ID3D11DeviceContext* pd3dImmediateContext, _In_ ID3D11Buffer* pBuffer);
+void RunComputeShader(_In_ ID3D11DeviceContext* pd3dImmediateContext,
+	_In_ ID3D11ComputeShader* pComputeShader,
+	_In_ UINT nNumViews, _In_reads_(nNumViews) ID3D11ShaderResourceView** pShaderResourceViews,
+	_In_opt_ ID3D11Buffer* pCBCS, _In_reads_opt_(dwNumDataBytes) void* pCSData, _In_ DWORD dwNumDataBytes,
+	_In_ ID3D11UnorderedAccessView* pUnorderedAccessView,
+	_In_ UINT X, _In_ UINT Y, _In_ UINT Z);
+HRESULT FindDXSDKShaderFileCch(_Out_writes_(cchDest) WCHAR* strDestPath,
+	_In_ int cchDest,
+	_In_z_ LPCWSTR strFilename);
+
 
 /******************Declaracoes das funcoes ******************/
 int Runge_Kutta(double *y, double *x, double Step, int Total);
@@ -261,6 +308,7 @@ void CellsTrajec(void)
 	// inicializa threads de execucao
 	printf("-->>>> Nao exceder a qtde de nucleos fisicos\n");
 	printf("-->>>> Numero de threads : ");
+#if 0
 	scanf("%d", &n_max_thread);
 	printf("\n\n");
 
@@ -269,7 +317,7 @@ void CellsTrajec(void)
 		printf("\n Numero maximo de threads menor que 1!\n");
 		exit(0);
 	}
-
+#endif
 	n_max_thread = 1;
 
 	/* Imprime cabecalho na tela */
@@ -315,65 +363,25 @@ void CellsTrajec(void)
 
 	int const total_celulas = cell_fim - cell_inicio + 1;
 
+	std::vector<ID3D11ComputeShader*> vetorPonteiroComputeShader;
+
+	printf("Inicializando variaveis das celulas...");
 	inicializaVariaveisdeEntrada(total_celulas, cell_inicio, x, y_old, xo, y);
+	printf("OK\n");
 
-	// tipos de plataformas de opencl instalados na maquina
-	std::vector<cl::Platform> plataformas;
-	// dispositivos instalados na maquina por plataforma
-	std::vector<cl::Device> dispositivos;
-	//inicializa objeto para criar contexto para execucao nos dispositivos
-	cl::Context *contextoDispositivos;
-	// cria os buffers de memoria na GPU
-	cl::Buffer buffer_x;
-	cl::Buffer buffer_y;
-	// armazena os programas dos kernels 
-	std::vector<cl::Program> programa;
+	printf("Criando Dispositivo...");
+	if (FAILED(CreateComputeDevice(&g_pDevice, &g_pContext, false)))
+		exit(0);
+	printf("OK\n");
 
-	try
-	{
-		// chamada para obtencao das plataformas
-		cl::Platform::get(&plataformas);
+	printf("Criando Compute Shader...");
+	if (FAILED(CreateComputeShader(L"kernel_f1.hlsl", "Func", g_pDevice, &g_pCS)))
+		exit(0);
+	printf("OK\n");
 
-		// chamada para obtencao dos dispositivos conectados na plataforma
-		// busca somente a gpu
-		plataformas[0].getDevices(CL_DEVICE_TYPE_GPU, &dispositivos);
+	vetorPonteiroComputeShader.push_back(g_pCS);
 
-		//inicializa objeto para criar contexto para execucao nos dispositivos
-		contextoDispositivos = new cl::Context(dispositivos);
 
-		//cria uma fila de comandos para o dispositivo GPU encotrado
-		cl::CommandQueue filaComandosGPU = cl::CommandQueue(contextoDispositivos[0], dispositivos[0]);
-
-		// cria os buffers de memoria na GPU
-		buffer_x = cl::Buffer(contextoDispositivos[0], CL_MEM_READ_WRITE, Nequ*Num_cel);
-		buffer_y = cl::Buffer(contextoDispositivos[0], CL_MEM_READ_WRITE, Nequ*Num_cel);
-
-		// copia os dados iniciais do host para a gpu 
-		filaComandosGPU.enqueueWriteBuffer(buffer_x, CL_TRUE, 0, Nequ*Num_cel, x);
-		filaComandosGPU.enqueueWriteBuffer(buffer_y, CL_TRUE, 0, Nequ*Num_cel, y);
-
-		char temp_buffer[50];
-		for (size_t i = 0; i < Nequ/2; i++)
-		{
-			// lê o codigo fonte do kernel
-			sprintf(temp_buffer, ".\\_kernel_opencl\\kernel_f%d.cl", i+1);
-			std::ifstream codigoFonteArquivo(temp_buffer);
-			std::string codigoFonte(std::istreambuf_iterator<char>(codigoFonteArquivo), (std::istreambuf_iterator<char>()));
-			cl::Program::Sources fonte(1, std::make_pair(codigoFonte.c_str(), codigoFonte.length() + 1));
-
-			//inicializa programa
-			programa.push_back(cl::Program(contextoDispositivos[0], fonte));
-
-			//compila o codigo do kernel
-			printf("\n compilando kernel %d", i+1);
-			programa[i].build(dispositivos);
-		}
-
-	}
-	catch (cl::Error error)
-	{
-		printf("\n%s ( %s )\n", error.what(), error.err());
-	}
 #if 0
 
 	for (int i = 0; i < total_celulas; i++)
@@ -503,19 +511,7 @@ void CellsTrajec(void)
 	return;
 }
 
-/* ===========================  DoubToInt  ===========================*/
-int DoubToInt(double doub)
-{
-	double result;
-	char *str;
-	int dec, sign, ndig = 0, n;
 
-	result = fmod(doub,1.0);
-	result = doub-result;
-	str = fcvt(result, ndig, &dec, &sign);
-	n = atoi(str);
-	return(n);
-}
 
 
 /* ===========================  main  ===========================*/
@@ -530,4 +526,209 @@ void main(void)
   CellsTrajec();
  
 }
+
+
+//--------------------------------------------------------------------------------------
+// Create the D3D device and device context suitable for running Compute Shaders(CS)
+//--------------------------------------------------------------------------------------
+_Use_decl_annotations_
+HRESULT CreateComputeDevice(ID3D11Device** ppDeviceOut, ID3D11DeviceContext** ppContextOut, bool bForceRef)
+{
+	*ppDeviceOut = nullptr;
+	*ppContextOut = nullptr;
+
+	HRESULT hr = S_OK;
+
+	UINT uCreationFlags = D3D11_CREATE_DEVICE_SINGLETHREADED;
+#ifdef _DEBUG
+	uCreationFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+	D3D_FEATURE_LEVEL flOut;
+	static const D3D_FEATURE_LEVEL flvl[] = { D3D_FEATURE_LEVEL_11_0, D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0 };
+
+	bool bNeedRefDevice = false;
+	if (!bForceRef)
+	{
+		hr = D3D11CreateDevice(nullptr,                        // Use default graphics card
+			D3D_DRIVER_TYPE_HARDWARE,    // Try to create a hardware accelerated device
+			nullptr,                        // Do not use external software rasterizer module
+			uCreationFlags,              // Device creation flags
+			flvl,
+			sizeof(flvl) / sizeof(D3D_FEATURE_LEVEL),
+			D3D11_SDK_VERSION,           // SDK version
+			ppDeviceOut,                 // Device out
+			&flOut,                      // Actual feature level created
+			ppContextOut);              // Context out
+
+		if (SUCCEEDED(hr))
+		{
+			// A hardware accelerated device has been created, so check for Compute Shader support
+
+			// If we have a device >= D3D_FEATURE_LEVEL_11_0 created, full CS5.0 support is guaranteed, no need for further checks
+			if (flOut < D3D_FEATURE_LEVEL_11_0)
+			{
+				// Otherwise, we need further check whether this device support CS4.x (Compute on 10)
+				D3D11_FEATURE_DATA_D3D10_X_HARDWARE_OPTIONS hwopts;
+				(*ppDeviceOut)->CheckFeatureSupport(D3D11_FEATURE_D3D10_X_HARDWARE_OPTIONS, &hwopts, sizeof(hwopts));
+				if (!hwopts.ComputeShaders_Plus_RawAndStructuredBuffers_Via_Shader_4_x)
+				{
+					bNeedRefDevice = true;
+					printf("No hardware Compute Shader capable device found, trying to create ref device.\n");
+				}
+			}
+		}
+	}
+
+	if (bForceRef || FAILED(hr) || bNeedRefDevice)
+	{
+		// Either because of failure on creating a hardware device or hardware lacking CS capability, we create a ref device here
+
+		SAFE_RELEASE(*ppDeviceOut);
+		SAFE_RELEASE(*ppContextOut);
+
+		hr = D3D11CreateDevice(nullptr,                        // Use default graphics card
+			D3D_DRIVER_TYPE_REFERENCE,   // Try to create a hardware accelerated device
+			nullptr,                        // Do not use external software rasterizer module
+			uCreationFlags,              // Device creation flags
+			flvl,
+			sizeof(flvl) / sizeof(D3D_FEATURE_LEVEL),
+			D3D11_SDK_VERSION,           // SDK version
+			ppDeviceOut,                 // Device out
+			&flOut,                      // Actual feature level created
+			ppContextOut);              // Context out
+		if (FAILED(hr))
+		{
+			printf("Reference rasterizer device create failure\n");
+			return hr;
+		}
+	}
+
+	return hr;
+}
+
+//--------------------------------------------------------------------------------------
+// Compile and create the CS
+//--------------------------------------------------------------------------------------
+_Use_decl_annotations_
+HRESULT CreateComputeShader(LPCWSTR pSrcFile, LPCSTR pFunctionName,
+	ID3D11Device* pDevice, ID3D11ComputeShader** ppShaderOut)
+{
+	if (!pDevice || !ppShaderOut)
+		return E_INVALIDARG;
+
+	// Finds the correct path for the shader file.
+	// This is only required for this sample to be run correctly from within the Sample Browser,
+	// in your own projects, these lines could be removed safely
+	WCHAR str[MAX_PATH];
+	HRESULT hr = FindDXSDKShaderFileCch(str, MAX_PATH, pSrcFile);
+	if (FAILED(hr))
+		return hr;
+
+	DWORD dwShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
+#ifdef _DEBUG
+	// Set the D3DCOMPILE_DEBUG flag to embed debug information in the shaders.
+	// Setting this flag improves the shader debugging experience, but still allows 
+	// the shaders to be optimized and to run exactly the way they will run in 
+	// the release configuration of this program.
+	dwShaderFlags |= D3DCOMPILE_DEBUG;
+
+	// Disable optimizations to further improve shader debugging
+	dwShaderFlags |= D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
+
+	const D3D_SHADER_MACRO defines[] =
+	{
+		nullptr, nullptr
+	};
+
+	// We generally prefer to use the higher CS shader profile when possible as CS 5.0 is better performance on 11-class hardware
+	LPCSTR pProfile = (pDevice->GetFeatureLevel() >= D3D_FEATURE_LEVEL_11_0) ? "cs_5_0" : "cs_4_0";
+
+	ID3DBlob* pErrorBlob = nullptr;
+	ID3DBlob* pBlob = nullptr;
+	hr = D3DCompileFromFile(str, defines, D3D_COMPILE_STANDARD_FILE_INCLUDE, pFunctionName, pProfile,
+		dwShaderFlags, 0, &pBlob, &pErrorBlob);
+	if (FAILED(hr))
+	{
+		if (pErrorBlob)
+			OutputDebugStringA((char*)pErrorBlob->GetBufferPointer());
+
+		SAFE_RELEASE(pErrorBlob);
+		SAFE_RELEASE(pBlob);
+
+		return hr;
+	}
+
+	hr = pDevice->CreateComputeShader(pBlob->GetBufferPointer(), pBlob->GetBufferSize(), nullptr, ppShaderOut);
+
+	SAFE_RELEASE(pErrorBlob);
+	SAFE_RELEASE(pBlob);
+
+#if defined(_DEBUG) || defined(PROFILE)
+	if (SUCCEEDED(hr))
+	{
+		(*ppShaderOut)->SetPrivateData(WKPDID_D3DDebugObjectName, lstrlenA(pFunctionName), pFunctionName);
+	}
+#endif
+
+	return hr;
+}
+
+//--------------------------------------------------------------------------------------
+// Tries to find the location of the shader file
+// This is a trimmed down version of DXUTFindDXSDKMediaFileCch.
+//--------------------------------------------------------------------------------------
+_Use_decl_annotations_
+HRESULT FindDXSDKShaderFileCch(WCHAR* strDestPath,
+	int cchDest,
+	LPCWSTR strFilename)
+{
+	if (!strFilename || strFilename[0] == 0 || !strDestPath || cchDest < 10)
+		return E_INVALIDARG;
+
+	// Get the exe name, and exe path
+	WCHAR strExePath[MAX_PATH] =
+	{
+		0
+	};
+	WCHAR strExeName[MAX_PATH] =
+	{
+		0
+	};
+	WCHAR* strLastSlash = nullptr;
+	GetModuleFileName(nullptr, strExePath, MAX_PATH);
+	strExePath[MAX_PATH - 1] = 0;
+	strLastSlash = wcsrchr(strExePath, TEXT('\\'));
+	if (strLastSlash)
+	{
+		wcscpy_s(strExeName, MAX_PATH, &strLastSlash[1]);
+
+		// Chop the exe name from the exe path
+		*strLastSlash = 0;
+
+		// Chop the .exe from the exe name
+		strLastSlash = wcsrchr(strExeName, TEXT('.'));
+		if (strLastSlash)
+			*strLastSlash = 0;
+	}
+
+	// Search in directories:
+	//      .\
+    //      %EXE_DIR%\..\..\%EXE_NAME%
+
+	wcscpy_s(strDestPath, cchDest, strFilename);
+	if (GetFileAttributes(strDestPath) != 0xFFFFFFFF)
+		return S_OK;
+
+	swprintf_s(strDestPath, cchDest, L"%s\\%s", strExePath, strFilename);
+	if (GetFileAttributes(strDestPath) != 0xFFFFFFFF)
+		return S_OK;
+
+	// On failure, return the file as the path but also return an error code
+	wcscpy_s(strDestPath, cchDest, strFilename);
+
+	return E_FAIL;
+}
+
+
 
