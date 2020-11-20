@@ -56,10 +56,11 @@ ID3D11ComputeShader*        g_pCS = nullptr;
 
 ID3D11Buffer*               g_pBufferX = nullptr;
 ID3D11Buffer*               g_pBufferY = nullptr;
+ID3D11Buffer*               g_pConstantBuffer = nullptr;
 ID3D11Buffer*               g_pBufResult = nullptr;
 
-ID3D11ShaderResourceView*   g_pBuf0SRV = nullptr;
-ID3D11ShaderResourceView*   g_pBuf1SRV = nullptr;
+ID3D11UnorderedAccessView*  g_pBufferX_UAV = nullptr;
+ID3D11UnorderedAccessView*  g_pBufferY_UAV = nullptr;
 ID3D11UnorderedAccessView*  g_pBufResultUAV = nullptr;
 
 //--------------------------------------------------------------------------------------
@@ -84,6 +85,29 @@ void RunComputeShader(_In_ ID3D11DeviceContext* pd3dImmediateContext,
 HRESULT FindDXSDKShaderFileCch(_Out_writes_(cchDest) WCHAR* strDestPath,
 	_In_ int cchDest,
 	_In_z_ LPCWSTR strFilename);
+
+// definicao das estruturas de dados que compoe o CONSTANT_BUFFER
+// Constant Buffer Layout
+struct CS_CONSTANT_BUFFER
+{
+	float cb_PL;
+	float cb_omega;
+	float cb_PL_8C;
+	float cb_PL_8S;
+	float cb_PL_9C;
+	float cb_PL_9S;
+	float cb_eta__1;
+	float cb_eta__2;
+	float cb_t;
+	// como o constant buffer deve ser composto em múltiplo de 32*4 bits
+	// sao adicionadas estas variaveis reservas que poderao ter uso futuro no codigo
+	float cb_variavelReserva1;
+	float cb_variavelReserva2;
+	float cb_variavelReserva3;
+} typedef CS_CONSTANT_BUFFER;
+
+// declara constant buffer global
+CS_CONSTANT_BUFFER ConstantBuffer;
 
 
 /******************Declaracoes das funcoes ******************/
@@ -260,7 +284,7 @@ public:
 	}
 };
 
-void inicializaVariaveisdeEntrada(int const total_celulas, int const cell_inicio, float* x, float* y_old, float* xo, float* y) {
+void inicializaVariaveisdeEntrada(int const total_celulas, int const cell_inicio, float* x, float* y_old, float* xo, float* y, CS_CONSTANT_BUFFER* ConstantBuffer) {
 
 	//printf("\n Inicializando as variaveis de entrada. \n");
 	//inicializa os dados de entrada de todas as celulas
@@ -285,6 +309,17 @@ void inicializaVariaveisdeEntrada(int const total_celulas, int const cell_inicio
 			y[ij*Num_cel + i] = 0.0f;
 		}
 	}
+
+	// atualiza os valores que serão constantes para o calculo de cada celula
+	ConstantBuffer->cb_PL = PL;
+	ConstantBuffer->cb_omega = Wf;
+	ConstantBuffer->cb_PL_8C = PL_8C;
+	ConstantBuffer->cb_PL_8S = PL_8S;
+	ConstantBuffer->cb_PL_9C = PL_9C;
+	ConstantBuffer->cb_PL_9S = PL_9S;
+	ConstantBuffer->cb_eta__1 = eta__1;
+	ConstantBuffer->cb_eta__2 = eta__2;
+	ConstantBuffer->cb_t = 0.0f;
 }
 
 /* ===========================  CellsTrajec  ===========================*/
@@ -365,8 +400,8 @@ void CellsTrajec(void)
 
 	std::vector<ID3D11ComputeShader*> vetorPonteiroComputeShader;
 
-	printf("Inicializando variaveis das celulas...");
-	inicializaVariaveisdeEntrada(total_celulas, cell_inicio, x, y_old, xo, y);
+	printf("Inicializando variaveis das celulas e buffer constante...");
+	inicializaVariaveisdeEntrada(total_celulas, cell_inicio, x, y_old, xo, y, &ConstantBuffer);
 	printf("OK\n");
 
 	printf("Criando Dispositivo...");
@@ -386,6 +421,25 @@ void CellsTrajec(void)
 	CreateRawBuffer(g_pDevice, Nequ*Num_cel * sizeof(float), &x[0], &g_pBufferX);
 	//buffer que armazena as variaveis do sistema no fim do passo do RK
 	CreateRawBuffer(g_pDevice, Nequ*Num_cel * sizeof(float), &y[0], &g_pBufferY);
+	printf("OK\n");
+
+	printf("Criando o buffer constante na memoria da placa de video...");
+	// Cria Constante Buffer
+	D3D11_BUFFER_DESC constant_buffer_desc;
+	constant_buffer_desc.ByteWidth = sizeof(CS_CONSTANT_BUFFER);
+	constant_buffer_desc.Usage = D3D11_USAGE_DYNAMIC;
+	constant_buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	constant_buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	constant_buffer_desc.MiscFlags = 0;
+	constant_buffer_desc.StructureByteStride = 0;
+	HRESULT sucesso = g_pDevice->CreateBuffer(&constant_buffer_desc, nullptr, &g_pConstantBuffer);
+	if (FAILED(sucesso))
+		exit(0);
+	printf("OK\n");
+
+	printf("Criando janelas de buffer de memoria...");
+	CreateBufferUAV(g_pDevice, g_pBufferX, &g_pBufferX_UAV);
+	CreateBufferUAV(g_pDevice, g_pBufferY, &g_pBufferY_UAV);
 	printf("OK\n");
 
 
@@ -760,6 +814,44 @@ HRESULT CreateRawBuffer(ID3D11Device* pDevice, UINT uSize, void* pInitData, ID3D
 	else
 		return pDevice->CreateBuffer(&desc, nullptr, ppBufOut);
 }
+
+//--------------------------------------------------------------------------------------
+// Create Unordered Access View for Structured or Raw Buffers
+//-------------------------------------------------------------------------------------- 
+_Use_decl_annotations_
+HRESULT CreateBufferUAV(ID3D11Device* pDevice, ID3D11Buffer* pBuffer, ID3D11UnorderedAccessView** ppUAVOut)
+{
+	D3D11_BUFFER_DESC descBuf = {};
+	pBuffer->GetDesc(&descBuf);
+
+	D3D11_UNORDERED_ACCESS_VIEW_DESC desc = {};
+	desc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+	desc.Buffer.FirstElement = 0;
+
+	if (descBuf.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS)
+	{
+		// This is a Raw Buffer
+
+		desc.Format = DXGI_FORMAT_R32_TYPELESS; // Format must be DXGI_FORMAT_R32_TYPELESS, when creating Raw Unordered Access View
+		desc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
+		desc.Buffer.NumElements = descBuf.ByteWidth / 4;
+	}
+	else
+	if (descBuf.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_STRUCTURED)
+	{
+		// This is a Structured Buffer
+
+		desc.Format = DXGI_FORMAT_UNKNOWN;      // Format must be must be DXGI_FORMAT_UNKNOWN, when creating a View of a Structured Buffer
+		desc.Buffer.NumElements = descBuf.ByteWidth / descBuf.StructureByteStride;
+	}
+	else
+	{
+		return E_INVALIDARG;
+	}
+
+	return pDevice->CreateUnorderedAccessView(pBuffer, &desc, ppUAVOut);
+}
+
 
 
 
