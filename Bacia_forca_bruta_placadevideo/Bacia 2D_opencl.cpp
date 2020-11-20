@@ -78,13 +78,15 @@ HRESULT CreateBufferUAV(_In_ ID3D11Device* pDevice, _In_ ID3D11Buffer* pBuffer, 
 ID3D11Buffer* CreateAndCopyToDebugBuf(_In_ ID3D11Device* pDevice, _In_ ID3D11DeviceContext* pd3dImmediateContext, _In_ ID3D11Buffer* pBuffer);
 void RunComputeShader(_In_ ID3D11DeviceContext* pd3dImmediateContext,
 	_In_ ID3D11ComputeShader* pComputeShader,
-	_In_ UINT nNumViews, _In_reads_(nNumViews) ID3D11ShaderResourceView** pShaderResourceViews,
+	_In_ UINT nNumViewsSRV, _In_reads_(nNumViewsSRV) ID3D11ShaderResourceView** pShaderResourceViews,
 	_In_opt_ ID3D11Buffer* pCBCS, _In_reads_opt_(dwNumDataBytes) void* pCSData, _In_ DWORD dwNumDataBytes,
-	_In_ ID3D11UnorderedAccessView* pUnorderedAccessView,
+	_In_ UINT nNumViewsURV, _In_reads_(nNumViewsURV) ID3D11UnorderedAccessView** pUnorderedAccessView,
 	_In_ UINT X, _In_ UINT Y, _In_ UINT Z);
 HRESULT FindDXSDKShaderFileCch(_Out_writes_(cchDest) WCHAR* strDestPath,
 	_In_ int cchDest,
 	_In_z_ LPCWSTR strFilename);
+
+void SetConstants(float tempo_t);
 
 // definicao das estruturas de dados que compoe o CONSTANT_BUFFER
 // Constant Buffer Layout
@@ -101,7 +103,7 @@ struct CS_CONSTANT_BUFFER
 	float cb_t;
 	// como o constant buffer deve ser composto em múltiplo de 32*4 bits
 	// sao adicionadas estas variaveis reservas que poderao ter uso futuro no codigo
-	float cb_variavelReserva1;
+	int cb_NumCel;
 	float cb_variavelReserva2;
 	float cb_variavelReserva3;
 } typedef CS_CONSTANT_BUFFER;
@@ -320,6 +322,7 @@ void inicializaVariaveisdeEntrada(int const total_celulas, int const cell_inicio
 	ConstantBuffer->cb_eta__1 = eta__1;
 	ConstantBuffer->cb_eta__2 = eta__2;
 	ConstantBuffer->cb_t = 0.0f;
+	ConstantBuffer->cb_NumCel = Num_cel;
 }
 
 /* ===========================  CellsTrajec  ===========================*/
@@ -343,7 +346,7 @@ void CellsTrajec(void)
 	// inicializa threads de execucao
 	printf("-->>>> Nao exceder a qtde de nucleos fisicos\n");
 	printf("-->>>> Numero de threads : ");
-#if 0
+#if false
 	scanf("%d", &n_max_thread);
 	printf("\n\n");
 
@@ -441,6 +444,31 @@ void CellsTrajec(void)
 	CreateBufferUAV(g_pDevice, g_pBufferX, &g_pBufferX_UAV);
 	CreateBufferUAV(g_pDevice, g_pBufferY, &g_pBufferY_UAV);
 	printf("OK\n");
+
+
+	ConstantBuffer.cb_t = (0.0f);
+	
+	printf("Running Compute Shader...");
+	ID3D11UnorderedAccessView* aRViews[2] = { g_pBufferX_UAV, g_pBufferY_UAV };
+	RunComputeShader(g_pContext, vetorPonteiroComputeShader[0], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 2, aRViews, 1, 1, 1);
+	printf("OK\n");
+
+	// Read back the result from GPU, verify its correctness against result computed by CPU
+	{
+		ID3D11Buffer* debugbuf = CreateAndCopyToDebugBuf(g_pDevice, g_pContext, g_pBufferY);
+		D3D11_MAPPED_SUBRESOURCE MappedResource;
+		float *p;
+		g_pContext->Map(debugbuf, 0, D3D11_MAP_READ, 0, &MappedResource);
+
+		// Set a break point here and put down the expression "p, 1024" in your watch window to see what has been written out by our CS
+		// This is also a common trick to debug CS programs.
+		p = (float*)MappedResource.pData;
+
+		g_pContext->Unmap(debugbuf, 0);
+
+		SAFE_RELEASE(debugbuf);
+	}
+	
 
 
 #if 0
@@ -852,7 +880,71 @@ HRESULT CreateBufferUAV(ID3D11Device* pDevice, ID3D11Buffer* pBuffer, ID3D11Unor
 	return pDevice->CreateUnorderedAccessView(pBuffer, &desc, ppUAVOut);
 }
 
+// --------------------------------------------------------------------------------------
+// Run CS
+//-------------------------------------------------------------------------------------- 
+_Use_decl_annotations_
+void RunComputeShader(ID3D11DeviceContext* pd3dImmediateContext,
+	ID3D11ComputeShader* pComputeShader,
+	UINT nNumViewsSRV, ID3D11ShaderResourceView** pShaderResourceViews,
+	ID3D11Buffer* pCBCS, void* pCSData, DWORD dwNumDataBytes,
+	UINT nNumViewsURV,
+	ID3D11UnorderedAccessView** pUnorderedAccessView,
+	UINT X, UINT Y, UINT Z)
+{
+	pd3dImmediateContext->CSSetShader(pComputeShader, nullptr, 0);
+	pd3dImmediateContext->CSSetShaderResources(0, nNumViewsSRV, pShaderResourceViews);
+	pd3dImmediateContext->CSSetUnorderedAccessViews(0, nNumViewsURV, pUnorderedAccessView, nullptr);
+	if (pCBCS && pCSData)
+	{
+		D3D11_MAPPED_SUBRESOURCE MappedResource;
+		pd3dImmediateContext->Map(pCBCS, 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource);
+		memcpy(MappedResource.pData, pCSData, dwNumDataBytes);
+		pd3dImmediateContext->Unmap(pCBCS, 0);
+		ID3D11Buffer* ppCB[1] = { pCBCS };
+		pd3dImmediateContext->CSSetConstantBuffers(0, 1, ppCB);
+	}
+
+	pd3dImmediateContext->Dispatch(X, Y, Z);
+
+	pd3dImmediateContext->CSSetShader(nullptr, nullptr, 0);
+
+	ID3D11UnorderedAccessView* ppUAViewnullptr[1] = { nullptr };
+	pd3dImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewnullptr, nullptr);
+
+	ID3D11ShaderResourceView* ppSRVnullptr[2] = { nullptr, nullptr };
+	pd3dImmediateContext->CSSetShaderResources(0, 2, ppSRVnullptr);
+
+	ID3D11Buffer* ppCBnullptr[1] = { nullptr };
+	pd3dImmediateContext->CSSetConstantBuffers(0, 1, ppCBnullptr);
+}
 
 
+//--------------------------------------------------------------------------------------
+// Create a CPU accessible buffer and download the content of a GPU buffer into it
+// This function is very useful for debugging CS programs
+//-------------------------------------------------------------------------------------- 
+_Use_decl_annotations_
+ID3D11Buffer* CreateAndCopyToDebugBuf(ID3D11Device* pDevice, ID3D11DeviceContext* pd3dImmediateContext, ID3D11Buffer* pBuffer)
+{
+	ID3D11Buffer* debugbuf = nullptr;
+
+	D3D11_BUFFER_DESC desc = {};
+	pBuffer->GetDesc(&desc);
+	desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+	desc.Usage = D3D11_USAGE_STAGING;
+	desc.BindFlags = 0;
+	desc.MiscFlags = 0;
+	if (SUCCEEDED(pDevice->CreateBuffer(&desc, nullptr, &debugbuf)))
+	{
+#if defined(_DEBUG) || defined(PROFILE)
+		debugbuf->SetPrivateData(WKPDID_D3DDebugObjectName, sizeof("Debug") - 1, "Debug");
+#endif
+
+		pd3dImmediateContext->CopyResource(debugbuf, pBuffer);
+	}
+
+	return debugbuf;
+}
 
 
