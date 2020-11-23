@@ -163,6 +163,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 		while (j < Num_passosPorStep)
 		{
 #ifdef DEBUG
+			fprintf(fd_log, "\nTempo = %f", t + ConstantBuffer.cb_Step);
 			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferX, fd_log, 1, "\ny_inicial");
 #endif // DEBUG
 			//--------------------
@@ -329,7 +330,7 @@ void NewData(void)
 	Tf = 2 * Pi / Wf;
 
 	/* Passo para integracao no tempo */
-	Passo = Tf / 500;
+	Passo = Tf / Ndiv;
 
 	/* Alocacao na pilha de vetores para o tamanho da celula */
 	q1 = (double*)calloc(Num_cel, sizeof(double));
@@ -377,7 +378,7 @@ public:
 
 		printf("->>Tempo de calculo da thread %d : %f s\n", nome_thd, duracao);
 	}
-};
+} typedef sTempo;
 
 void inicializaVariaveisdeEntrada(int const total_celulas, int const cell_inicio, float* x, float* y_old, float* xo, float* y, CS_CONSTANT_BUFFER* ConstantBuffer) {
 
@@ -406,14 +407,14 @@ void inicializaVariaveisdeEntrada(int const total_celulas, int const cell_inicio
 	}
 
 	// atualiza os valores que serão constantes para o calculo de cada celula
-	ConstantBuffer->cb_PL = PL;
-	ConstantBuffer->cb_omega = Wf;
-	ConstantBuffer->cb_PL_8C = PL_8C;
-	ConstantBuffer->cb_PL_8S = PL_8S;
-	ConstantBuffer->cb_PL_9C = PL_9C;
-	ConstantBuffer->cb_PL_9S = PL_9S;
-	ConstantBuffer->cb_eta__1 = eta__1;
-	ConstantBuffer->cb_eta__2 = eta__2;
+	ConstantBuffer->cb_PL = static_cast<float>(PL);
+	ConstantBuffer->cb_omega = static_cast<float>(Wf);
+	ConstantBuffer->cb_PL_8C = static_cast<float>(PL_8C);
+	ConstantBuffer->cb_PL_8S = static_cast<float>(PL_8S);
+	ConstantBuffer->cb_PL_9C = static_cast<float>(PL_9C);
+	ConstantBuffer->cb_PL_9S = static_cast<float>(PL_9S);
+	ConstantBuffer->cb_eta__1 = static_cast<float>(eta__1);
+	ConstantBuffer->cb_eta__2 = static_cast<float>(eta__2);
 	ConstantBuffer->cb_t = 0.0f;
 	ConstantBuffer->cb_NumCel = Num_cel;
 }
@@ -421,7 +422,7 @@ void inicializaVariaveisdeEntrada(int const total_celulas, int const cell_inicio
 /* ===========================  CellsTrajec  ===========================*/
 void CellsTrajec(void)
 {
-	FILE *fd;
+	FILE *fd, *fd_log;
 
 	int num_cells_thread;
 	int n_max_thread;
@@ -435,16 +436,14 @@ void CellsTrajec(void)
 		return;
 	}
 
-#ifdef DEBUG
 	/* Abre arquivo de impressao   */
-	FILE *fd_log;
 	fd_log = fopen("rkutta_directx_log.txt", "w");
 	if (fd == NULL) {
 		printf("\n Nao foi possivel abrir arquivo de bacia_results.txt !\n");
 		exit(0);
 		return;
 	}
-#endif // DEBUG
+
 
 
 
@@ -471,7 +470,7 @@ void CellsTrajec(void)
 	// inicializa timer
 		// como ele esta limitado ao escopo da funcao executada pela thread
 		// logo que a thread terminar e o escopo do timer acabar ele imprime a duracao
-	Tempo tempo(1);
+	sTempo tempo(1);
 
 	//imprime executanto thread
 	printf("Executando thread %2d: processo: %6d cell_init: %6d cell_fim: %6d\n",
@@ -595,13 +594,15 @@ void CellsTrajec(void)
 	CreateBufferUAV(g_pDevice, g_pBufferK4, &g_pBufferK4_UAV);
 	printf("OK\n");
 
-
-	
 	printf("Running Compute Shader...");
-	Runge_Kutta(Passo, 500, 1,
-		vetorPonteiroComputeShader,
-		vP_CS_AtualizacaoRK, fd_log);
+	{
+		sTempo timer(2);
+		Runge_Kutta(Passo, Ndiv, 1,
+			vetorPonteiroComputeShader,
+			vP_CS_AtualizacaoRK, fd_log);
+	}
 	printf("OK\n");
+	Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferX, fd_log, 1, "ultimo ponto");
 	
 
 
@@ -620,7 +621,7 @@ void CellsTrajec(void)
 		while (flag && y[Cor1] < 1e10)
 		{
 			/* Integracao no tempo */
-			value = Runge_Kutta(y, x, Passo, 500);
+			value = Runge_Kutta(y, x, Passo, Ndiv);
 			/* Conta numero de periodos de integracao e contador para periodicidade da solucao */
 			Tempo++;
 			Periodo++;
@@ -732,6 +733,22 @@ void CellsTrajec(void)
 	fclose(fd);
 #endif // 1
 	return;
+	SAFE_RELEASE(g_pBufferK1_UAV);
+	SAFE_RELEASE(g_pBufferK2_UAV);
+	SAFE_RELEASE(g_pBufferK3_UAV);
+	SAFE_RELEASE(g_pBufferK4_UAV);
+	SAFE_RELEASE(g_pBufferX_UAV);
+	SAFE_RELEASE(g_pBufferY_UAV);
+	SAFE_RELEASE(g_pBufferK1);
+	SAFE_RELEASE(g_pBufferK2);
+	SAFE_RELEASE(g_pBufferK3);
+	SAFE_RELEASE(g_pBufferK4);
+	SAFE_RELEASE(g_pBufferX);
+	SAFE_RELEASE(g_pBufferY);
+	SAFE_RELEASE(g_pConstantBuffer);
+	SAFE_RELEASE(g_pCS);
+	SAFE_RELEASE(g_pContext);
+	SAFE_RELEASE(g_pDevice);
 }
 
 
@@ -843,7 +860,7 @@ void Salva_log_Rkutta(ID3D11Device *p_Device, ID3D11DeviceContext *p_Context, ID
 	fprintf(fd, "%s\n", cabecalho);
 	for (int j = 0; j < Nequ; j++)
 	{
-		fprintf(fd, "%16.12e,  ", p[j*Num_cel + ncellToPrint -1]);
+		fprintf(fd, "%25.20f,  ", p[j*Num_cel + ncellToPrint -1]);
 	}
 	fprintf(fd, "\n");
 
@@ -870,7 +887,7 @@ HRESULT CreateComputeShader(LPCWSTR pSrcFile, LPCSTR pFunctionName,
 	if (FAILED(hr))
 		return hr;
 
-	DWORD dwShaderFlags = D3DCOMPILE_ENABLE_STRICTNESS;
+	DWORD dwShaderFlags = D3DCOMPILE_SKIP_OPTIMIZATION;
 #ifdef _DEBUG
 	// Set the D3DCOMPILE_DEBUG flag to embed debug information in the shaders.
 	// Setting this flag improves the shader debugging experience, but still allows 
