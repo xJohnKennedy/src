@@ -16,6 +16,7 @@
 #include <d3dcommon.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
+#include <Windows.h>
 
 #ifndef SAFE_RELEASE
 #define SAFE_RELEASE(p)      { if (p) { (p)->Release(); (p)=nullptr; } }
@@ -56,12 +57,24 @@ ID3D11ComputeShader*        g_pCS = nullptr;
 
 ID3D11Buffer*               g_pBufferX = nullptr;
 ID3D11Buffer*               g_pBufferY = nullptr;
+ID3D11Buffer*               g_pBufferK1 = nullptr;
+ID3D11Buffer*				g_pBufferK2 = nullptr;
+ID3D11Buffer*				g_pBufferK3 = nullptr;
+ID3D11Buffer*				g_pBufferK4 = nullptr;
+
+
 ID3D11Buffer*               g_pConstantBuffer = nullptr;
-ID3D11Buffer*               g_pBufResult = nullptr;
+
 
 ID3D11UnorderedAccessView*  g_pBufferX_UAV = nullptr;
 ID3D11UnorderedAccessView*  g_pBufferY_UAV = nullptr;
-ID3D11UnorderedAccessView*  g_pBufResultUAV = nullptr;
+ID3D11UnorderedAccessView*  g_pBufferK1_UAV = nullptr;
+ID3D11UnorderedAccessView*  g_pBufferK2_UAV = nullptr;
+ID3D11UnorderedAccessView*  g_pBufferK3_UAV = nullptr;
+ID3D11UnorderedAccessView*  g_pBufferK4_UAV = nullptr;
+
+
+int numGroupThreads = 1;
 
 //--------------------------------------------------------------------------------------
 // Forward declarations 
@@ -86,7 +99,7 @@ HRESULT FindDXSDKShaderFileCch(_Out_writes_(cchDest) WCHAR* strDestPath,
 	_In_ int cchDest,
 	_In_z_ LPCWSTR strFilename);
 
-void SetConstants(float tempo_t);
+void Salva_log_Rkutta(ID3D11Device *p_Device, ID3D11DeviceContext *p_Context, ID3D11Buffer * p_Buffer, FILE *fd, int ncellToPrint, char* cabecalho);
 
 // definicao das estruturas de dados que compoe o CONSTANT_BUFFER
 // Constant Buffer Layout
@@ -104,7 +117,7 @@ struct CS_CONSTANT_BUFFER
 	// como o constant buffer deve ser composto em múltiplo de 32*4 bits
 	// sao adicionadas estas variaveis reservas que poderao ter uso futuro no codigo
 	int cb_NumCel;
-	float cb_variavelReserva2;
+	float cb_Step;
 	float cb_variavelReserva3;
 } typedef CS_CONSTANT_BUFFER;
 
@@ -153,12 +166,14 @@ int Runge_Kutta(double *y, double *x, double Step, int Total)
 	/* Integracao de Runge-Kutta para um periodo */
 	while (j < Total)
 	{
-		t1 = t;
-		for (i = 0; i < Nequ; i++)
+		/*
+		ConstantBuffer.cb_t = (float) t;
+		for (size_t i = 0; i < Nequ / 2; i++)
 		{
-			g1[i] = y[i];
+			ID3D11UnorderedAccessView* aRViews[2] = { g_pBufferX_UAV, g_pBufferK1_UAV };
+			RunComputeShader(g_pContext, vetorPonteiroComputeShader[i], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 2, aRViews, numGroupThreads, 1, 1);
 		}
-		Func(k1, g1, t1, Wf);
+		*/
 		
 		t2 = t + Step * 0.5;
 		for (i = 0; i < Nequ; i++)
@@ -342,6 +357,18 @@ void CellsTrajec(void)
 		return;
 	}
 
+#ifdef DEBUG
+	/* Abre arquivo de impressao   */
+	FILE *fd_log;
+	fd_log = fopen("rkutta_directx_log.txt", "w");
+	if (fd == NULL) {
+		printf("\n Nao foi possivel abrir arquivo de bacia_results.txt !\n");
+		exit(0);
+		return;
+	}
+#endif // DEBUG
+
+
 
 	// inicializa threads de execucao
 	printf("-->>>> Nao exceder a qtde de nucleos fisicos\n");
@@ -402,6 +429,7 @@ void CellsTrajec(void)
 	int const total_celulas = cell_fim - cell_inicio + 1;
 
 	std::vector<ID3D11ComputeShader*> vetorPonteiroComputeShader;
+	std::vector<ID3D11ComputeShader*> vP_CS_AtualizacaoRK;
 
 	printf("Inicializando variaveis das celulas e buffer constante...");
 	inicializaVariaveisdeEntrada(total_celulas, cell_inicio, x, y_old, xo, y, &ConstantBuffer);
@@ -412,66 +440,186 @@ void CellsTrajec(void)
 		exit(0);
 	printf("OK\n");
 
-	printf("Criando Compute Shader...");
-	if (FAILED(CreateComputeShader(L"kernel_f1.hlsl", "Func", g_pDevice, &g_pCS)))
-		exit(0);
-	printf("OK\n");
+	printf("Criando Compute Shader...\n");
+	{
+		char buffer_name[50];
+		wchar_t* name_WC;
+		int numCaracteresEscritos = 0;
+		for (size_t i = 0; i < Nequ/2; i++)
+		{
+			//armazena nome do kernel
+			printf("Compilando kernel %d...", i+1);
+			numCaracteresEscritos = sprintf(buffer_name, "kernel_f%d.hlsl", i+1);
+			name_WC = (wchar_t *)malloc((numCaracteresEscritos + 1) * sizeof(wchar_t));
+			mbstowcs(name_WC, buffer_name, numCaracteresEscritos +1);
+			if (FAILED(CreateComputeShader(name_WC, "Func", g_pDevice, &g_pCS)))
+				exit(0);
+			free(name_WC);
+			vetorPonteiroComputeShader.push_back(g_pCS);
+		}
+		printf("OK\n");
+		printf("Compilando kernel atualizacao RK meio passo...");
+		if (FAILED(CreateComputeShader(L"atualiza_RK_meioPasso.hlsl", "Func", g_pDevice, &g_pCS)))
+			exit(0);
+		vP_CS_AtualizacaoRK.push_back(g_pCS);
+		printf("OK\n");
+		printf("Compilando kernel atualizacao RK inteiro passo...");
+		if (FAILED(CreateComputeShader(L"atualiza_RK_InteiroPasso.hlsl", "Func", g_pDevice, &g_pCS)))
+			exit(0);
+		vP_CS_AtualizacaoRK.push_back(g_pCS);
+		printf("OK\n");
+		printf("Compilando kernel atualizacao RK final passo...");
+		if (FAILED(CreateComputeShader(L"atualiza_RK_FinalPasso.hlsl", "Func", g_pDevice, &g_pCS)))
+			exit(0);
+		vP_CS_AtualizacaoRK.push_back(g_pCS);
+		printf("OK\n");
+	}
+	
 
-	vetorPonteiroComputeShader.push_back(g_pCS);
 
 	printf("Criando os buffers na memoria da placa de video...");
 	//buffer que contem as variaveis do sistema no inico de cada passo do RK
 	CreateRawBuffer(g_pDevice, Nequ*Num_cel * sizeof(float), &x[0], &g_pBufferX);
 	//buffer que armazena as variaveis do sistema no fim do passo do RK
 	CreateRawBuffer(g_pDevice, Nequ*Num_cel * sizeof(float), &y[0], &g_pBufferY);
+	//buffer que armazena as variaveis da primeira interacao do passo do RK
+	CreateRawBuffer(g_pDevice, Nequ*Num_cel * sizeof(float), &y[0], &g_pBufferK1);
+	//buffer que armazena as variaveis da segunda interacao do passo do RK
+	CreateRawBuffer(g_pDevice, Nequ*Num_cel * sizeof(float), &y[0], &g_pBufferK2);
+	//buffer que armazena as variaveis da terceira interacao do passo do RK
+	CreateRawBuffer(g_pDevice, Nequ*Num_cel * sizeof(float), &y[0], &g_pBufferK3);
+	//buffer que armazena as variaveis da quarta interacao do passo do RK
+	CreateRawBuffer(g_pDevice, Nequ*Num_cel * sizeof(float), &y[0], &g_pBufferK4);
 	printf("OK\n");
 
 	printf("Criando o buffer constante na memoria da placa de video...");
 	// Cria Constante Buffer
-	D3D11_BUFFER_DESC constant_buffer_desc;
-	constant_buffer_desc.ByteWidth = sizeof(CS_CONSTANT_BUFFER);
-	constant_buffer_desc.Usage = D3D11_USAGE_DYNAMIC;
-	constant_buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	constant_buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	constant_buffer_desc.MiscFlags = 0;
-	constant_buffer_desc.StructureByteStride = 0;
-	HRESULT sucesso = g_pDevice->CreateBuffer(&constant_buffer_desc, nullptr, &g_pConstantBuffer);
-	if (FAILED(sucesso))
-		exit(0);
-	printf("OK\n");
+	{
+		D3D11_BUFFER_DESC constant_buffer_desc;
+		constant_buffer_desc.ByteWidth = sizeof(CS_CONSTANT_BUFFER);
+		constant_buffer_desc.Usage = D3D11_USAGE_DYNAMIC;
+		constant_buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		constant_buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		constant_buffer_desc.MiscFlags = 0;
+		constant_buffer_desc.StructureByteStride = 0;
+		HRESULT sucesso = g_pDevice->CreateBuffer(&constant_buffer_desc, nullptr, &g_pConstantBuffer);
+		if (FAILED(sucesso))
+			exit(0);
+		printf("OK\n");
+	}
 
 	printf("Criando janelas de buffer de memoria...");
 	CreateBufferUAV(g_pDevice, g_pBufferX, &g_pBufferX_UAV);
 	CreateBufferUAV(g_pDevice, g_pBufferY, &g_pBufferY_UAV);
+	CreateBufferUAV(g_pDevice, g_pBufferK1, &g_pBufferK1_UAV);
+	CreateBufferUAV(g_pDevice, g_pBufferK2, &g_pBufferK2_UAV);
+	CreateBufferUAV(g_pDevice, g_pBufferK3, &g_pBufferK3_UAV);
+	CreateBufferUAV(g_pDevice, g_pBufferK4, &g_pBufferK4_UAV);
 	printf("OK\n");
 
 
-	ConstantBuffer.cb_t = (0.0f);
 	
 	printf("Running Compute Shader...");
-	ID3D11UnorderedAccessView* aRViews[2] = { g_pBufferX_UAV, g_pBufferY_UAV };
-	RunComputeShader(g_pContext, vetorPonteiroComputeShader[0], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 2, aRViews, 1, 1, 1);
-	printf("OK\n");
+	float t = 0.0f;
 
-	// Read back the result from GPU, verify its correctness against result computed by CPU
+#ifdef DEBUG
+	printf("Step = %f", Passo);
+	Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferX, fd_log, 1, "y_inicial");
+#endif // DEBUG
+
+	ConstantBuffer.cb_Step = (float)Passo;
+	//--------------------
+	// calcula valor de k1
+	ConstantBuffer.cb_t = t;
+	for (size_t i = 0; i < Nequ/2; i++)
 	{
-		ID3D11Buffer* debugbuf = CreateAndCopyToDebugBuf(g_pDevice, g_pContext, g_pBufferY);
-		D3D11_MAPPED_SUBRESOURCE MappedResource;
-		float *p;
-		g_pContext->Map(debugbuf, 0, D3D11_MAP_READ, 0, &MappedResource);
-
-		// Set a break point here and put down the expression "p, 1024" in your watch window to see what has been written out by our CS
-		// This is also a common trick to debug CS programs.
-		p = (float*)MappedResource.pData;
-
-		g_pContext->Unmap(debugbuf, 0);
-
-		SAFE_RELEASE(debugbuf);
+		ID3D11UnorderedAccessView* aRViews[2] = { g_pBufferX_UAV, g_pBufferK1_UAV };
+		RunComputeShader(g_pContext, vetorPonteiroComputeShader[i], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 2, aRViews, numGroupThreads, 1, 1);
 	}
+#ifdef DEBUG
+	Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferK1, fd_log, 1, "calculo_k1");
+#endif // DEBUG
+
+	//--------------------
+	// calcula correcao para o proximo passo baseado no valor de k1
+	{
+		ID3D11UnorderedAccessView* aRViews[3] = { g_pBufferX_UAV, g_pBufferK1_UAV , g_pBufferY_UAV};
+		RunComputeShader(g_pContext, vP_CS_AtualizacaoRK[0], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 3, aRViews, numGroupThreads, 1, 1);
+#ifdef DEBUG
+		Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_log, 1, "novo_y_correcao_baseado_em_k1");
+#endif // DEBUG
+	}
+
+	//--------------------
+	// calcula valor de k2
+	ConstantBuffer.cb_t = t + ConstantBuffer.cb_Step/2;
+	for (size_t i = 0; i < Nequ / 2; i++)
+	{
+		ID3D11UnorderedAccessView* aRViews[2] = { g_pBufferY_UAV, g_pBufferK2_UAV };
+		RunComputeShader(g_pContext, vetorPonteiroComputeShader[i], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 2, aRViews, numGroupThreads, 1, 1);
+	}
+#ifdef DEBUG
+	Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferK2, fd_log, 1, "calculo_k2");
+#endif // DEBUG
+
+	//--------------------
+	// calcula correcao para o proximo passo baseado no valor de k2
+	{
+		ID3D11UnorderedAccessView* aRViews[3] = { g_pBufferX_UAV, g_pBufferK2_UAV , g_pBufferY_UAV };
+		RunComputeShader(g_pContext, vP_CS_AtualizacaoRK[0], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 3, aRViews, numGroupThreads, 1, 1);
+#ifdef DEBUG
+		Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_log, 1, "novo_y_correcao_baseado_em_k2");
+#endif // DEBUG
+	}
+
+	//--------------------
+	// calcula valor de k3
+	// ConstantBuffer.cb_t = t + ConstantBuffer.cb_Step / 2;
+	for (size_t i = 0; i < Nequ / 2; i++)
+	{
+		ID3D11UnorderedAccessView* aRViews[2] = { g_pBufferY_UAV, g_pBufferK3_UAV };
+		RunComputeShader(g_pContext, vetorPonteiroComputeShader[i], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 2, aRViews, numGroupThreads, 1, 1);
+	}
+#ifdef DEBUG
+	Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferK3, fd_log, 1, "calculo_k3");
+#endif // DEBUG
+
+	//--------------------
+	// calcula correcao para o proximo passo baseado no valor de k3
+	{
+		ID3D11UnorderedAccessView* aRViews[3] = { g_pBufferX_UAV, g_pBufferK3_UAV , g_pBufferY_UAV };
+		RunComputeShader(g_pContext, vP_CS_AtualizacaoRK[1], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 3, aRViews, numGroupThreads, 1, 1);
+#ifdef DEBUG
+		Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_log, 1, "novo_y_correcao_baseado_em_k3");
+#endif // DEBUG
+	}
+
+	//--------------------
+	// calcula valor de k4
+	ConstantBuffer.cb_t = t + ConstantBuffer.cb_Step;
+	for (size_t i = 0; i < Nequ / 2; i++)
+	{
+		ID3D11UnorderedAccessView* aRViews[2] = { g_pBufferY_UAV, g_pBufferK4_UAV };
+		RunComputeShader(g_pContext, vetorPonteiroComputeShader[i], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 2, aRViews, numGroupThreads, 1, 1);
+	}
+#ifdef DEBUG
+	Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferK4, fd_log, 1, "calculo_k4");
+#endif // DEBUG
+
+	//--------------------
+	// calcula correcao final baseado no valor de y0, k1, k2, k3, k4
+	{
+		ID3D11UnorderedAccessView* aRViews[6] = { g_pBufferX_UAV, g_pBufferK1_UAV, g_pBufferK2_UAV, g_pBufferK3_UAV , g_pBufferK4_UAV, g_pBufferY_UAV };
+		RunComputeShader(g_pContext, vP_CS_AtualizacaoRK[2], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 6, aRViews, numGroupThreads, 1, 1);
+#ifdef DEBUG
+		Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_log, 1, "novo_y_correcao_baseado_em_k1_k2_k3_k4");
+#endif // DEBUG
+	}
+	printf("OK\n");
 	
 
 
-#if 0
+#if false
 
 	for (int i = 0; i < total_celulas; i++)
 	{
@@ -695,6 +843,29 @@ HRESULT CreateComputeDevice(ID3D11Device** ppDeviceOut, ID3D11DeviceContext** pp
 	return hr;
 }
 
+void Salva_log_Rkutta(ID3D11Device *p_Device, ID3D11DeviceContext *p_Context, ID3D11Buffer * p_Buffer, FILE *fd, int ncellToPrint, char* cabecalho) {
+
+	ID3D11Buffer* debugbuf = CreateAndCopyToDebugBuf(p_Device, p_Context, p_Buffer);
+	D3D11_MAPPED_SUBRESOURCE MappedResource;
+	float *p;
+	p_Context->Map(debugbuf, 0, D3D11_MAP_READ, 0, &MappedResource);
+
+	// Set a break point here and put down the expression "p, 1024" in your watch window to see what has been written out by our CS
+	// This is also a common trick to debug CS programs.
+	p = (float*)MappedResource.pData;
+
+	fprintf(fd, "%s\n", cabecalho);
+	for (int j = 0; j < Nequ; j++)
+	{
+		fprintf(fd, "%16.12e,  ", p[j*Num_cel + ncellToPrint -1]);
+	}
+	fprintf(fd, "\n");
+
+	p_Context->Unmap(debugbuf, 0);
+
+	SAFE_RELEASE(debugbuf);
+}
+
 //--------------------------------------------------------------------------------------
 // Compile and create the CS
 //--------------------------------------------------------------------------------------
@@ -809,7 +980,7 @@ HRESULT FindDXSDKShaderFileCch(WCHAR* strDestPath,
 	if (GetFileAttributes(strDestPath) != 0xFFFFFFFF)
 		return S_OK;
 
-	swprintf_s(strDestPath, cchDest, L"%s\\%s", strExePath, strFilename);
+	swprintf_s(strDestPath, cchDest, L"%s\\_kernel_directx\\%s", strExePath, strFilename);
 	if (GetFileAttributes(strDestPath) != 0xFFFFFFFF)
 		return S_OK;
 
@@ -892,6 +1063,8 @@ void RunComputeShader(ID3D11DeviceContext* pd3dImmediateContext,
 	ID3D11UnorderedAccessView** pUnorderedAccessView,
 	UINT X, UINT Y, UINT Z)
 {
+
+
 	pd3dImmediateContext->CSSetShader(pComputeShader, nullptr, 0);
 	pd3dImmediateContext->CSSetShaderResources(0, nNumViewsSRV, pShaderResourceViews);
 	pd3dImmediateContext->CSSetUnorderedAccessViews(0, nNumViewsURV, pUnorderedAccessView, nullptr);
@@ -909,11 +1082,11 @@ void RunComputeShader(ID3D11DeviceContext* pd3dImmediateContext,
 
 	pd3dImmediateContext->CSSetShader(nullptr, nullptr, 0);
 
-	ID3D11UnorderedAccessView* ppUAViewnullptr[1] = { nullptr };
-	pd3dImmediateContext->CSSetUnorderedAccessViews(0, 1, ppUAViewnullptr, nullptr);
+	ID3D11UnorderedAccessView* ppUAViewnullptr[100] = { nullptr };
+	pd3dImmediateContext->CSSetUnorderedAccessViews(0, nNumViewsURV, ppUAViewnullptr, nullptr);
 
-	ID3D11ShaderResourceView* ppSRVnullptr[2] = { nullptr, nullptr };
-	pd3dImmediateContext->CSSetShaderResources(0, 2, ppSRVnullptr);
+	ID3D11ShaderResourceView* ppSRVnullptr[100] = { nullptr, nullptr };
+	pd3dImmediateContext->CSSetShaderResources(0, nNumViewsSRV, ppSRVnullptr);
 
 	ID3D11Buffer* ppCBnullptr[1] = { nullptr };
 	pd3dImmediateContext->CSSetConstantBuffers(0, 1, ppCBnullptr);
