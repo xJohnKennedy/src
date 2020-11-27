@@ -74,7 +74,7 @@ ID3D11UnorderedAccessView*  g_pBufferK3_UAV = nullptr;
 ID3D11UnorderedAccessView*  g_pBufferK4_UAV = nullptr;
 
 
-int numGroupThreads = 1;
+int numGroupThreads = 2;
 
 //--------------------------------------------------------------------------------------
 // Forward declarations 
@@ -82,11 +82,7 @@ int numGroupThreads = 1;
 HRESULT CreateComputeDevice(_Outptr_ ID3D11Device** ppDeviceOut, _Outptr_ ID3D11DeviceContext** ppContextOut, _In_ bool bForceRef);
 HRESULT CreateComputeShader(_In_z_ LPCWSTR pSrcFile, _In_z_ LPCSTR pFunctionName,
 	_In_ ID3D11Device* pDevice, _Outptr_ ID3D11ComputeShader** ppShaderOut);
-HRESULT CreateStructuredBuffer(_In_ ID3D11Device* pDevice, _In_ UINT uElementSize, _In_ UINT uCount,
-	_In_reads_(uElementSize*uCount) void* pInitData,
-	_Outptr_ ID3D11Buffer** ppBufOut);
 HRESULT CreateRawBuffer(_In_ ID3D11Device* pDevice, _In_ UINT uSize, _In_reads_(uSize) void* pInitData, _Outptr_ ID3D11Buffer** ppBufOut);
-HRESULT CreateBufferSRV(_In_ ID3D11Device* pDevice, _In_ ID3D11Buffer* pBuffer, _Outptr_ ID3D11ShaderResourceView** ppSRVOut);
 HRESULT CreateBufferUAV(_In_ ID3D11Device* pDevice, _In_ ID3D11Buffer* pBuffer, _Outptr_ ID3D11UnorderedAccessView** pUAVOut);
 ID3D11Buffer* CreateAndCopyToDebugBuf(_In_ ID3D11Device* pDevice, _In_ ID3D11DeviceContext* pd3dImmediateContext, _In_ ID3D11Buffer* pBuffer);
 void RunComputeShader(_In_ ID3D11DeviceContext* pd3dImmediateContext,
@@ -611,10 +607,10 @@ void CellsTrajec(void)
 		sTempo timer(2);
 		Runge_Kutta(Passo, Ndiv, 3000,
 			vetorPonteiroComputeShader,
-			vP_CS_AtualizacaoRK, fd_log, fd, 1);
+			vP_CS_AtualizacaoRK, fd_log, fd, 2);
 	}
 	printf("OK\n");
-	Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferX, fd_log, 1, "ultimo ponto");
+	Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferX, fd_log, 2, "ultimo ponto");
 	
 
 
