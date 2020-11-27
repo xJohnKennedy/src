@@ -128,7 +128,7 @@ CS_CONSTANT_BUFFER ConstantBuffer;
 /******************Declaracoes das funcoes ******************/
 int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 	std::vector<ID3D11ComputeShader*> vetorPonteiroComputeShader,
-	std::vector<ID3D11ComputeShader*> vP_CS_AtualizacaoRK, FILE *fd_log);
+	std::vector<ID3D11ComputeShader*> vP_CS_AtualizacaoRK, FILE *fd_log, FILE *fd);
 void NewData(void);
 void CellsTrajec(void);
 void CellsTrajec_core(int const nome_thread, int const cell_inicio, int const cell_fim);
@@ -140,10 +140,10 @@ void CellsTrajec_core(int const nome_thread, int const cell_inicio, int const ce
 /*===========================  Runge_Kutta  ===========================*/
 int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 	std::vector<ID3D11ComputeShader*> vetorPonteiroComputeShader, 
-	std::vector<ID3D11ComputeShader*> vP_CS_AtualizacaoRK, FILE *fd_log)
+	std::vector<ID3D11ComputeShader*> vP_CS_AtualizacaoRK, FILE *fd_log, FILE *fd)
 {
 
-	int i, j;
+	int ii, j;
 
 	
 
@@ -154,9 +154,9 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 	ConstantBuffer.cb_Step = (float)Step;
 
 	float t = 0.0f;
-	i = 0;
+	ii = 0;
 
-	while (i < Total_Periodos)
+	while (ii < Total_Periodos)
 	{
 		j = 0;
 		/* Integracao de Runge-Kutta para um periodo */
@@ -164,7 +164,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 		{
 #ifdef DEBUG
 			fprintf(fd_log, "\nTempo = %f", t + ConstantBuffer.cb_Step);
-			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferX, fd_log, 1, "\ny_inicial");
+			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferX, fd_log, 1, "\ny_inicial\n");
 #endif // DEBUG
 			//--------------------
 			// calcula valor de k1
@@ -175,7 +175,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 				RunComputeShader(g_pContext, vetorPonteiroComputeShader[i], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 2, aRViews, numGroupThreads, 1, 1);
 			}
 #ifdef DEBUG
-			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferK1, fd_log, 1, "calculo_k1");
+			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferK1, fd_log, 1, "calculo_k1\n");
 #endif // DEBUG
 
 			//--------------------
@@ -184,7 +184,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 				ID3D11UnorderedAccessView* aRViews[3] = { g_pBufferX_UAV, g_pBufferK1_UAV , g_pBufferY_UAV };
 				RunComputeShader(g_pContext, vP_CS_AtualizacaoRK[0], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 3, aRViews, numGroupThreads, 1, 1);
 #ifdef DEBUG
-				Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_log, 1, "novo_y_correcao_baseado_em_k1");
+				Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_log, 1, "novo_y_correcao_baseado_em_k1\n");
 #endif // DEBUG
 			}
 
@@ -197,7 +197,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 				RunComputeShader(g_pContext, vetorPonteiroComputeShader[i], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 2, aRViews, numGroupThreads, 1, 1);
 			}
 #ifdef DEBUG
-			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferK2, fd_log, 1, "calculo_k2");
+			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferK2, fd_log, 1, "calculo_k2\n");
 #endif // DEBUG
 
 			//--------------------
@@ -206,7 +206,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 				ID3D11UnorderedAccessView* aRViews[3] = { g_pBufferX_UAV, g_pBufferK2_UAV , g_pBufferY_UAV };
 				RunComputeShader(g_pContext, vP_CS_AtualizacaoRK[0], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 3, aRViews, numGroupThreads, 1, 1);
 #ifdef DEBUG
-				Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_log, 1, "novo_y_correcao_baseado_em_k2");
+				Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_log, 1, "novo_y_correcao_baseado_em_k2\n");
 #endif // DEBUG
 			}
 
@@ -219,7 +219,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 				RunComputeShader(g_pContext, vetorPonteiroComputeShader[i], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 2, aRViews, numGroupThreads, 1, 1);
 			}
 #ifdef DEBUG
-			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferK3, fd_log, 1, "calculo_k3");
+			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferK3, fd_log, 1, "calculo_k3\n");
 #endif // DEBUG
 
 			//--------------------
@@ -228,7 +228,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 				ID3D11UnorderedAccessView* aRViews[3] = { g_pBufferX_UAV, g_pBufferK3_UAV , g_pBufferY_UAV };
 				RunComputeShader(g_pContext, vP_CS_AtualizacaoRK[1], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 3, aRViews, numGroupThreads, 1, 1);
 #ifdef DEBUG
-				Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_log, 1, "novo_y_correcao_baseado_em_k3");
+				Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_log, 1, "novo_y_correcao_baseado_em_k3\n");
 #endif // DEBUG
 			}
 
@@ -241,7 +241,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 				RunComputeShader(g_pContext, vetorPonteiroComputeShader[i], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 2, aRViews, numGroupThreads, 1, 1);
 			}
 #ifdef DEBUG
-			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferK4, fd_log, 1, "calculo_k4");
+			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferK4, fd_log, 1, "calculo_k4\n");
 #endif // DEBUG
 
 			//--------------------
@@ -250,13 +250,22 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 				ID3D11UnorderedAccessView* aRViews[6] = { g_pBufferX_UAV, g_pBufferK1_UAV, g_pBufferK2_UAV, g_pBufferK3_UAV , g_pBufferK4_UAV, g_pBufferY_UAV };
 				RunComputeShader(g_pContext, vP_CS_AtualizacaoRK[2], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 6, aRViews, numGroupThreads, 1, 1);
 #ifdef DEBUG
-				Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_log, 1, "novo_y_correcao_baseado_em_k1_k2_k3_k4");
+				Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_log, 1, "novo_y_correcao_baseado_em_k1_k2_k3_k4\n");
 #endif // DEBUG
 			}
 
 			// atualiza t para o proximo Step
 			t = t + Step;
 			j++;
+
+#if true
+			{
+				char str_temp[50];
+				sprintf(str_temp, "%f, ", t);
+				Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd, 1, str_temp);
+			}
+#endif // DEBUG
+
 
 			/* Apos completar o step do runge-kutta o buffer g_pBufferY contem todos os pontos iniciais
 			para o proximo step, sendo entao necessário atualizar o buffer g_pBufferX, entao aproveitando
@@ -273,15 +282,18 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 				ID3D11Buffer *g_pBufferTemp = g_pBufferY;
 				g_pBufferY = g_pBufferX;
 				g_pBufferX = g_pBufferTemp;
+				g_pBufferTemp = nullptr;
+
 
 				// tambem devem ser trocadas as janelas de acessos que apontavam para os enderecos antigos
 				ID3D11UnorderedAccessView*  g_pBufferTemp_UAV = g_pBufferY_UAV;
 				g_pBufferY_UAV = g_pBufferX_UAV;
 				g_pBufferX_UAV = g_pBufferTemp_UAV;
+				g_pBufferTemp_UAV = nullptr;
 			}
 		}
 		// atualiza o contador de Periodos
-		i++;
+		ii++;
 	}
 
 
@@ -597,9 +609,9 @@ void CellsTrajec(void)
 	printf("Running Compute Shader...");
 	{
 		sTempo timer(2);
-		Runge_Kutta(Passo, Ndiv, 1,
+		Runge_Kutta(Passo, Ndiv, 3000,
 			vetorPonteiroComputeShader,
-			vP_CS_AtualizacaoRK, fd_log);
+			vP_CS_AtualizacaoRK, fd_log, fd);
 	}
 	printf("OK\n");
 	Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferX, fd_log, 1, "ultimo ponto");
@@ -857,7 +869,7 @@ void Salva_log_Rkutta(ID3D11Device *p_Device, ID3D11DeviceContext *p_Context, ID
 	// This is also a common trick to debug CS programs.
 	p = (float*)MappedResource.pData;
 
-	fprintf(fd, "%s\n", cabecalho);
+	fprintf(fd, "%s", cabecalho);
 	for (int j = 0; j < Nequ; j++)
 	{
 		fprintf(fd, "%25.20f,  ", p[j*Num_cel + ncellToPrint -1]);
@@ -1088,7 +1100,7 @@ void RunComputeShader(ID3D11DeviceContext* pd3dImmediateContext,
 	ID3D11UnorderedAccessView* ppUAViewnullptr[100] = { nullptr };
 	pd3dImmediateContext->CSSetUnorderedAccessViews(0, nNumViewsURV, ppUAViewnullptr, nullptr);
 
-	ID3D11ShaderResourceView* ppSRVnullptr[100] = { nullptr, nullptr };
+	ID3D11ShaderResourceView* ppSRVnullptr[100] = { nullptr };
 	pd3dImmediateContext->CSSetShaderResources(0, nNumViewsSRV, ppSRVnullptr);
 
 	ID3D11Buffer* ppCBnullptr[1] = { nullptr };
