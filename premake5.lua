@@ -354,6 +354,9 @@ workspace "RUNGE_FORCA_BRUTA_BACIA"                   -- Solution Name
 		-- Exclude template files from project (so they don't accidentally get compiled)
 		filter { "files:**.tpp" }
 		  flags {"ExcludeFromBuild"}
+		
+		filter { "configurations:Release_Windows_7" }
+		  flags {"ExcludeFromBuild"}
 
 		filter {} -- clear filter!
 
@@ -385,9 +388,24 @@ workspace "RUNGE_FORCA_BRUTA_BACIA"                   -- Solution Name
 		}
 
 		links
-		{
+		{ 
 		  -- add depedencies (libraries) here
+		  "d3d11.lib", "d3dcompiler.lib", "dxguid.lib", "winmm.lib", "comctl32.lib", "usp10.lib"
 		}
+
+		--------------------------------------------------------
+		---- [ CUSTOM BUILD COMMANDS FOR DIRECTX COMPILER ] ----
+		--------------------------------------------------------
+		buildmessage 'Copiadndo D3D DLL'
+		buildcommands
+		{
+			'copy /y "$(WindowsSdkDir)redist\\d3d\\x64\\D3DCompile*.DLL" "$(TargetDir)"'
+		}
+		buildoutputs 
+		{
+			 '$(TargetDir)D3DCompile_46.DLL' 
+		}
+
 
 		-------------------------------------------
 		--------- [ POST BUILD COMMANDS ] ---------
@@ -396,7 +414,9 @@ workspace "RUNGE_FORCA_BRUTA_BACIA"                   -- Solution Name
 		configuration "Release"
 			   postbuildcommands { "cd ..\\exe\\Release"}
 			   postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe .\\"}
+			   postbuildcommands { "copy %{prj.name}\\D3DCompile*.DLL .\\"}
 			   postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe ..\\..\\_bin\\"}
+			   postbuildcommands { "copy %{prj.name}\\D3DCompile*.DLL ..\\..\\_bin\\"}
 	
 	
 	
