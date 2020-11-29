@@ -131,7 +131,7 @@ void CellsTrajec_core(int const nome_thread, int const cell_inicio, int const ce
 
 
 /*===========================  Func  ===========================*/
-#include "_config_modelo/arquivo_equacoes.h"
+
 
 /*===========================  Runge_Kutta  ===========================*/
 int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
@@ -252,7 +252,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 			}
 
 			// atualiza t para o proximo Step
-			t = t + Step;
+			t = t + (float)Step;
 			j++;
 
 #if false
@@ -292,6 +292,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 		// atualiza o contador de Periodos
 		ii++;
 
+// imprime secoes de poincare de uma celula, usar apemas para debug ou profile
 #if true
 		{
 			char str_temp[50];
