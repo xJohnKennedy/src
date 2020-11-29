@@ -13,10 +13,10 @@
 #define _BACIA_C
 
 //definicao de diretivas de preprocessamento para impressao de arquivos de log ou RK para uma celula determinada
-#define _POINCARE_LOG		False
-#define _RUNGEKUTTA_LOG		False
+#define _POINCARE_LOG		true
+#define _RUNGEKUTTA_LOG		true
 #if (_POINCARE_LOG || _RUNGEKUTTA_LOG)
-#define _NUM_CELL_LOG 2
+#define _NUM_CELL_LOG -1
 #endif
 
 // inclusao dos cabecalhos do Directx
@@ -53,6 +53,9 @@ double Passo;
 double Y1min,Y1max,Y2min,Y2max;
 int Num_cel,Cor1,Cor2;
 double *q1,*q1p,*q2,*q2p;
+
+//variavel para controle de criacao de arquivos de log somente na primeira chamanda do RK
+bool LimparArquivosLog = true;
 
 
 //--------------------------------------------------------------------------------------
@@ -131,7 +134,7 @@ CS_CONSTANT_BUFFER ConstantBuffer;
 /******************Declaracoes das funcoes ******************/
 int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 	std::vector<ID3D11ComputeShader*> vetorPonteiroComputeShader,
-	std::vector<ID3D11ComputeShader*> vP_CS_AtualizacaoRK, FILE *fd_log, FILE *fd, int ncellToPrint);
+	std::vector<ID3D11ComputeShader*> vP_CS_AtualizacaoRK);
 void NewData(void);
 void CellsTrajec(void);
 void CellsTrajec_core(int const nome_thread, int const cell_inicio, int const cell_fim);
@@ -143,11 +146,73 @@ void CellsTrajec_core(int const nome_thread, int const cell_inicio, int const ce
 /*===========================  Runge_Kutta  ===========================*/
 int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 	std::vector<ID3D11ComputeShader*> vetorPonteiroComputeShader, 
-	std::vector<ID3D11ComputeShader*> vP_CS_AtualizacaoRK, FILE *fd_log, FILE *fd, int ncellToPrint)
+	std::vector<ID3D11ComputeShader*> vP_CS_AtualizacaoRK)
 {
 
 	int ii, j;
 
+	//caso se deseje imprimir as secoes de poincare de uma determinada celula cria arquivo de log
+#if (_POINCARE_LOG)
+	FILE *fd_poincare_log;
+	if (LimparArquivosLog) 
+	{
+		fd_poincare_log = fopen("directx_poincare_log.txt", "w");
+	}
+	else
+	{
+		fd_poincare_log = fopen("directx_poincare_log.txt", "a");
+	}
+	if (fd_poincare_log == NULL) {
+		printf("\n Nao foi possivel abrir arquivo de directx_poincare_log.txt !\n");
+		exit(0);
+		return 0;
+	}
+
+	//define variavel de 64bits para armazenar tempo total para melhor precisao
+	double tempo_poincare_64t = 0.0;
+#endif
+
+#if (_RUNGEKUTTA_LOG)
+	FILE *fd_rk_log;
+	if (LimparArquivosLog)
+	{
+		fd_rk_log = fopen("directx_rk_log.txt", "w");
+	}
+	else
+	{
+		fd_rk_log = fopen("directx_rk_log.txt", "a");
+	}
+	if (fd_rk_log == NULL) {
+		printf("\n Nao foi possivel abrir arquivo de directx_rk_log.txt !\n");
+		exit(0);
+		return 0;
+	}
+
+	//define variavel de 64bits para armazenar tempo total para melhor precisao
+	double tempo_rk_64t = 0.0;
+#endif
+
+	//caso se deseje imprimir todo o log de procedimento do runge kutta de uma determinada celula
+#ifdef DEBUG
+	FILE *fd_rk_completelog;
+	if (LimparArquivosLog)
+	{
+		fd_rk_completelog = fopen("directx_rk_completelog.txt", "w");
+	}
+	else
+	{
+		fd_rk_completelog = fopen("directx_rk_completelog.txt", "a");
+	}
+	if (fd_rk_completelog == NULL) {
+		printf("\n Nao foi possivel abrir arquivo de directx_rk_completelog.txt !\n");
+		exit(0);
+		return 0;
+	}
+#endif
+
+
+	//redefine LimparArquivosLog para falso para evitar apagar arquivo quando o Runge-Kutta for chamado novamente
+	LimparArquivosLog = false;
 	
 
 #ifdef DEBUG
@@ -167,8 +232,8 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 		while (j < Num_passosPorStep)
 		{
 #ifdef DEBUG
-			fprintf(fd_log, "\nTempo = %f", t + ConstantBuffer.cb_Step);
-			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferX, fd_log, ncellToPrint, "\ny_inicial\n");
+			fprintf(fd_rk_completelog, "\nTempo = %f", t + ConstantBuffer.cb_Step);
+			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferX, fd_rk_completelog, _NUM_CELL_LOG, "\ny_inicial\n");
 #endif // DEBUG
 			//--------------------
 			// calcula valor de k1
@@ -179,7 +244,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 				RunComputeShader(g_pContext, vetorPonteiroComputeShader[i], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 2, aRViews, numGroupThreads, 1, 1);
 			}
 #ifdef DEBUG
-			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferK1, fd_log, ncellToPrint, "calculo_k1\n");
+			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferK1, fd_rk_completelog, _NUM_CELL_LOG, "calculo_k1\n");
 #endif // DEBUG
 
 			//--------------------
@@ -188,7 +253,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 				ID3D11UnorderedAccessView* aRViews[3] = { g_pBufferX_UAV, g_pBufferK1_UAV , g_pBufferY_UAV };
 				RunComputeShader(g_pContext, vP_CS_AtualizacaoRK[0], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 3, aRViews, numGroupThreads, 1, 1);
 #ifdef DEBUG
-				Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_log, ncellToPrint, "novo_y_correcao_baseado_em_k1\n");
+				Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_rk_completelog, _NUM_CELL_LOG, "novo_y_correcao_baseado_em_k1\n");
 #endif // DEBUG
 			}
 
@@ -201,7 +266,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 				RunComputeShader(g_pContext, vetorPonteiroComputeShader[i], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 2, aRViews, numGroupThreads, 1, 1);
 			}
 #ifdef DEBUG
-			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferK2, fd_log, ncellToPrint, "calculo_k2\n");
+			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferK2, fd_rk_completelog, _NUM_CELL_LOG, "calculo_k2\n");
 #endif // DEBUG
 
 			//--------------------
@@ -210,7 +275,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 				ID3D11UnorderedAccessView* aRViews[3] = { g_pBufferX_UAV, g_pBufferK2_UAV , g_pBufferY_UAV };
 				RunComputeShader(g_pContext, vP_CS_AtualizacaoRK[0], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 3, aRViews, numGroupThreads, 1, 1);
 #ifdef DEBUG
-				Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_log, ncellToPrint, "novo_y_correcao_baseado_em_k2\n");
+				Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_rk_completelog, _NUM_CELL_LOG, "novo_y_correcao_baseado_em_k2\n");
 #endif // DEBUG
 			}
 
@@ -223,7 +288,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 				RunComputeShader(g_pContext, vetorPonteiroComputeShader[i], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 2, aRViews, numGroupThreads, 1, 1);
 			}
 #ifdef DEBUG
-			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferK3, fd_log, ncellToPrint, "calculo_k3\n");
+			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferK3, fd_rk_completelog, _NUM_CELL_LOG, "calculo_k3\n");
 #endif // DEBUG
 
 			//--------------------
@@ -232,7 +297,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 				ID3D11UnorderedAccessView* aRViews[3] = { g_pBufferX_UAV, g_pBufferK3_UAV , g_pBufferY_UAV };
 				RunComputeShader(g_pContext, vP_CS_AtualizacaoRK[1], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 3, aRViews, numGroupThreads, 1, 1);
 #ifdef DEBUG
-				Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_log, ncellToPrint, "novo_y_correcao_baseado_em_k3\n");
+				Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_rk_completelog, _NUM_CELL_LOG, "novo_y_correcao_baseado_em_k3\n");
 #endif // DEBUG
 			}
 
@@ -245,7 +310,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 				RunComputeShader(g_pContext, vetorPonteiroComputeShader[i], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 2, aRViews, numGroupThreads, 1, 1);
 			}
 #ifdef DEBUG
-			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferK4, fd_log, ncellToPrint, "calculo_k4\n");
+			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferK4, fd_rk_completelog, _NUM_CELL_LOG, "calculo_k4\n");
 #endif // DEBUG
 
 			//--------------------
@@ -254,7 +319,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 				ID3D11UnorderedAccessView* aRViews[6] = { g_pBufferX_UAV, g_pBufferK1_UAV, g_pBufferK2_UAV, g_pBufferK3_UAV , g_pBufferK4_UAV, g_pBufferY_UAV };
 				RunComputeShader(g_pContext, vP_CS_AtualizacaoRK[2], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 6, aRViews, numGroupThreads, 1, 1);
 #ifdef DEBUG
-				Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_log, ncellToPrint, "novo_y_correcao_baseado_em_k1_k2_k3_k4\n");
+				Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_rk_completelog, _NUM_CELL_LOG, "novo_y_correcao_baseado_em_k1_k2_k3_k4\n");
 #endif // DEBUG
 			}
 
@@ -262,11 +327,13 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 			t = t + (float)Step;
 			j++;
 
-#if false
+			// imprime passo do runge-kutta de uma celula, usar apemas para debug ou profile
+#if (_RUNGEKUTTA_LOG)
+			tempo_rk_64t = tempo_rk_64t + Step;
 			{
 				char str_temp[50];
-				sprintf(str_temp, "%f, ", t);
-				Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd, ncellToPrint, str_temp);
+				sprintf(str_temp, "%lf, ", tempo_rk_64t);
+				Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_rk_log, _NUM_CELL_LOG, str_temp);
 			}
 #endif
 
@@ -300,15 +367,25 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 		ii++;
 
 // imprime secoes de poincare de uma celula, usar apemas para debug ou profile
-#if true
+#if (_POINCARE_LOG)
+		tempo_poincare_64t = tempo_poincare_64t + (double)t;
 		{
 			char str_temp[50];
-			sprintf(str_temp, "poincare cell %d t=%f, ", ncellToPrint, t);
-			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferX, fd_log, ncellToPrint, str_temp);
+			sprintf(str_temp, "poincare cell %d t=%lf, ", _NUM_CELL_LOG, tempo_poincare_64t);
+			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferX, fd_poincare_log, _NUM_CELL_LOG, str_temp);
 		}
 #endif
 	}
 
+#ifdef DEBUG
+	fclose(fd_rk_completelog);
+#endif
+#if (_RUNGEKUTTA_LOG)
+	fclose(fd_rk_log);
+#endif
+#if (_POINCARE_LOG)
+	fclose(fd_poincare_log);
+#endif
 
 	return(1);
 }
@@ -447,7 +524,7 @@ void inicializaVariaveisdeEntrada(int const total_celulas, int const cell_inicio
 /* ===========================  CellsTrajec  ===========================*/
 void CellsTrajec(void)
 {
-	FILE *fd, *fd_log;
+	FILE *fd;
 
 	int num_cells_thread;
 	int n_max_thread;
@@ -457,14 +534,6 @@ void CellsTrajec(void)
 
 	/* Abre arquivo de impressao   */
 	fd = fopen("bacia_results.txt", "w");
-	if (fd == NULL) {
-		printf("\n Nao foi possivel abrir arquivo de bacia_results.txt !\n");
-		exit(0);
-		return;
-	}
-
-	/* Abre arquivo de impressao   */
-	fd_log = fopen("rkutta_directx_log.txt", "w");
 	if (fd == NULL) {
 		printf("\n Nao foi possivel abrir arquivo de bacia_results.txt !\n");
 		exit(0);
@@ -626,16 +695,11 @@ void CellsTrajec(void)
 	{
 		// executa o RK em pararelo para todas as celulas por um periodo suficientemente longo
 		sTempo timer(2);
-		Runge_Kutta(Passo, Ndiv, 3000,
+		Runge_Kutta(Passo, Ndiv, 5,
 			vetorPonteiroComputeShader,
-			vP_CS_AtualizacaoRK, fd_log, fd, 2);
+			vP_CS_AtualizacaoRK);
 	}
 	printf("OK\n");
-
-#if true
-	Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferX, fd_log, 1, "ultimo ponto");
-	Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferX, fd_log, 2, "ultimo ponto");
-#endif
 
 	printf("Executando pesquisa de periodicidade da resposta...");
 	//buffer de memoria que armazena as condicoes iniciais para o teste de covergencia
@@ -669,11 +733,7 @@ void CellsTrajec(void)
 		//calcula RK em 1 periodo
 		Runge_Kutta(Passo, Ndiv, 1,
 			vetorPonteiroComputeShader,
-			vP_CS_AtualizacaoRK, fd_log, fd, 2);
-#if true
-		Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferX, fd_log, 1, "ultimo ponto");
-		Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferX, fd_log, 2, "ultimo ponto");
-#endif
+			vP_CS_AtualizacaoRK);
 
 		//copia dados da GPU para a CPU
 		g_pBufferX_novo = CreateAndCopyToDebugBuf(g_pDevice, g_pContext, g_pBufferX);
@@ -713,12 +773,12 @@ void CellsTrajec(void)
 								Y2max >= X_novo[Cor2*total_celulas + i_celula])
 							{
 								// imprime no arquivo txt com formatacao periodica
-								fprintf(fd, "%d, %16.12e, %16.12e, %16.12e, %16.12e,",
+								fprintf(fd, "%d, %+16.12e, %+16.12e, %+16.12e, %+16.12e,",
 									(i_celula + 1), x[Cor1*total_celulas + i_celula], x[Cor2*total_celulas + i_celula],
 									X_novo[Cor1*total_celulas + i_celula], X_novo[Cor2*total_celulas + i_celula]);
 								for (int j = 0; j < Nequ; j++)
 								{
-									fprintf(fd, "%16.12e,  ", X_novo[j*total_celulas + i_celula]);
+									fprintf(fd, "%+16.12e,  ", X_novo[j*total_celulas + i_celula]);
 								}
 								fprintf(fd, "%5d\n", numMaxPeriodos+ i_per+1);
 							}
@@ -743,12 +803,12 @@ void CellsTrajec(void)
 		if (tabelaPeriodos[i_celula] == 0)
 		{
 			// imprime no arquivo txt com formatacao periodica
-			fprintf(fd, "%d, %16.12e, %16.12e, %16.12e, %16.12e,",
+			fprintf(fd, "%d, %+16.12e, %+16.12e, %+16.12e, %+16.12e,",
 				(-i_celula - 1), x[Cor1*total_celulas + i_celula], x[Cor2*total_celulas + i_celula],
 				X_novo[Cor1*total_celulas + i_celula], X_novo[Cor2*total_celulas + i_celula]);
 			for (int j = 0; j < Nequ; j++)
 			{
-				fprintf(fd, "%16.12e,  ", X_novo[j*total_celulas + i_celula]);
+				fprintf(fd, "%+16.12e,  ", X_novo[j*total_celulas + i_celula]);
 			}
 			fprintf(fd, "%5d\n", numMaxPeriodos + PeriodoMaximo + 1);
 		}
@@ -874,6 +934,14 @@ HRESULT CreateComputeDevice(ID3D11Device** ppDeviceOut, ID3D11DeviceContext** pp
 }
 
 void Salva_log_Rkutta(ID3D11Device *p_Device, ID3D11DeviceContext *p_Context, ID3D11Buffer * p_Buffer, FILE *fd, int ncellToPrint, char* cabecalho) {
+	
+	// verifica se a celula a ser escrita no log esta dentro do numero maximo de celulas
+	if (ncellToPrint > Num_cel || ncellToPrint < 1)
+	{
+		printf("\n Nao e possivel imprimir uma celula fora do limite maximo ou menor que 1! Celula para impressao(%d) >> Numero maximo de celulas(%d)\n", ncellToPrint, Num_cel);
+		exit(0);
+		return;
+	}
 
 	ID3D11Buffer* debugbuf = CreateAndCopyToDebugBuf(p_Device, p_Context, p_Buffer);
 	D3D11_MAPPED_SUBRESOURCE MappedResource;
