@@ -12,6 +12,13 @@
 
 #define _BACIA_C
 
+//definicao de diretivas de preprocessamento para impressao de arquivos de log ou RK para uma celula determinada
+#define _POINCARE_LOG		False
+#define _RUNGEKUTTA_LOG		False
+#if (_POINCARE_LOG || _RUNGEKUTTA_LOG)
+#define _NUM_CELL_LOG 2
+#endif
+
 // inclusao dos cabecalhos do Directx
 #include <d3dcommon.h>
 #include <d3d11.h>
@@ -543,7 +550,7 @@ void CellsTrajec(void)
 		char buffer_name[50];
 		wchar_t* name_WC;
 		int numCaracteresEscritos = 0;
-		for (size_t i = 0; i < Nequ/2; i++)
+		for (int i = 0; i < Nequ/2; i++)
 		{
 			//armazena nome do kernel
 			printf("Compilando kernel %d...", i+1);
@@ -657,7 +664,7 @@ void CellsTrajec(void)
 	//contador de periodos para teste de convergencia
 	Periodo = 0;
 
-	for (size_t i_per = 0; i_per < PeriodoMaximo; i_per++)
+	for (int i_per = 0; i_per < PeriodoMaximo; i_per++)
 	{
 		//calcula RK em 1 periodo
 		Runge_Kutta(Passo, Ndiv, 1,
@@ -676,7 +683,7 @@ void CellsTrajec(void)
 		X_novo = (float*)MappedResource.pData;
 
 		//loop que percorre todas as celulas para verificar quais convergiram
-		for (size_t i_celula = 0; i_celula < total_celulas; i_celula++)
+		for (int i_celula = 0; i_celula < total_celulas; i_celula++)
 		{
 			//testa se a celula ja havia convergido, caso nao, verifica se convergiu no passo atual
 			if (tabelaPeriodos[i_celula] == 0)
@@ -730,7 +737,7 @@ void CellsTrajec(void)
 
 	printf("Salvando respostas nao periodicas...");
 	//loop que percorre todas as celulas para verificar quais nao convergiram
-	for (size_t i_celula = 0; i_celula < total_celulas; i_celula++)
+	for (int i_celula = 0; i_celula < total_celulas; i_celula++)
 	{
 		//testa se a celula nao convergiu
 		if (tabelaPeriodos[i_celula] == 0)
