@@ -15,8 +15,8 @@
 //definicao de diretivas de preprocessamento para impressao de arquivos de log ou RK para uma celula determinada
 #define _POINCARE_LOG		true
 #define _RUNGEKUTTA_LOG		true
-#if (_POINCARE_LOG || _RUNGEKUTTA_LOG)
-#define _NUM_CELL_LOG -1
+#if (_POINCARE_LOG || _RUNGEKUTTA_LOG || DEBUG)
+#define _NUM_CELL_LOG 2
 #endif
 
 // inclusao dos cabecalhos do Directx
