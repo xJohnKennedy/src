@@ -154,6 +154,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 
 	while (ii < Total_Periodos)
 	{
+		t = 0.0f;
 		j = 0;
 		/* Integracao de Runge-Kutta para um periodo */
 		while (j < Num_passosPorStep)
@@ -254,13 +255,13 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 			t = t + Step;
 			j++;
 
-#if true
+#if false
 			{
 				char str_temp[50];
 				sprintf(str_temp, "%f, ", t);
 				Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd, ncellToPrint, str_temp);
 			}
-#endif // DEBUG
+#endif
 
 
 			/* Apos completar o step do runge-kutta o buffer g_pBufferY contem todos os pontos iniciais
@@ -290,6 +291,14 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 		}
 		// atualiza o contador de Periodos
 		ii++;
+
+#if true
+		{
+			char str_temp[50];
+			sprintf(str_temp, "poincare cell %d t=%f, ", ncellToPrint, t);
+			Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferX, fd_log, ncellToPrint, str_temp);
+		}
+#endif
 	}
 
 
@@ -435,6 +444,8 @@ void CellsTrajec(void)
 	int num_cells_thread;
 	int n_max_thread;
 	long int cellnum;
+	int numMaxPeriodos = 3000;
+	double criterioConvergencia = 1.0e-2;
 
 	/* Abre arquivo de impressao   */
 	fd = fopen("bacia_results.txt", "w");
@@ -489,7 +500,8 @@ void CellsTrajec(void)
 	//int const cell_fim = valor de busca da ultima celula no vetor q1 e q1p
 
 	// declaracao das variaveis locais de controle
-	int i, j, retorno, Periodo, PeriodoBack, flag, flag_periodica;
+	bool flag;
+	int i, j, retorno, Periodo, PeriodoBack, flag_periodica;
 	int value, ij, Tempo;
 	//declaracao dos dados do host
 	float*	x = new float [Nequ*Num_cel];
@@ -497,7 +509,7 @@ void CellsTrajec(void)
 	float*	y_old = new float[Nequ*Num_cel];
 	float*	xo = new float[Nequ*Num_cel];
 	// declaracao dos atratores
-	float derro, zo0atr, zo1atr;
+	float derro = 0.0f, zo0atr = 0.0f, zo1atr = 0.0f;
 
 	FILE *fd_thread;
 
@@ -602,144 +614,140 @@ void CellsTrajec(void)
 	CreateBufferUAV(g_pDevice, g_pBufferK4, &g_pBufferK4_UAV);
 	printf("OK\n");
 
-	printf("Running Compute Shader...");
+	printf("Executando Compute Shader...");
 	{
+		// executa o RK em pararelo para todas as celulas por um periodo suficientemente longo
 		sTempo timer(2);
 		Runge_Kutta(Passo, Ndiv, 3000,
 			vetorPonteiroComputeShader,
 			vP_CS_AtualizacaoRK, fd_log, fd, 2);
 	}
 	printf("OK\n");
+
+#if true
+	Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferX, fd_log, 1, "ultimo ponto");
 	Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferX, fd_log, 2, "ultimo ponto");
-	
+#endif
+
+	printf("Executando pesquisa de periodicidade da resposta...");
+	//buffer de memoria que armazena as condicoes iniciais para o teste de covergencia
+	ID3D11Buffer* g_pBufferX_inicial = CreateAndCopyToDebugBuf(g_pDevice, g_pContext, g_pBufferX);
+	D3D11_MAPPED_SUBRESOURCE MappedResource;
+	//variavel de memoria que armazena as condicoes iniciais para o teste de covergencia
+	float *X0;
+	g_pContext->Map(g_pBufferX_inicial, 0, D3D11_MAP_READ, 0, &MappedResource);
+	//copia do buffer de memoria da GPU para a memoria da CPU
+	X0 = (float*)MappedResource.pData;
+
+	//buffer de memoria que armazena as condicoes finais apos o calculo de 1 periodo para o teste de covergencia
+	ID3D11Buffer* g_pBufferX_novo = nullptr;
+	//variavel de memoria que armazena as condicoes finais apos o calculo de 1 periodo para o teste de covergencia
+	float *X_novo = nullptr;
 
 
-#if false
-
-	for (int i = 0; i < total_celulas; i++)
+	//variavel que armazena as periodicidades de cada celula
+	// 0 = nao convergiu
+	// valores diferentes de zero sao os periodos do RK convergido
+	int* tabelaPeriodos = new int[total_celulas];
+	for (size_t i = 0; i < total_celulas; i++)
 	{
-		flag_periodica = -1;
-		/* Contador de Tempo e de periodicidade da solucao */
-		Tempo = 0;
-		Periodo = 0;
+		tabelaPeriodos[i] = 0;
+	}
+	//contador de periodos para teste de convergencia
+	Periodo = 0;
 
-		flag = 1;
+	for (size_t i_per = 0; i_per < PeriodoMaximo; i_per++)
+	{
+		//calcula RK em 1 periodo
+		Runge_Kutta(Passo, Ndiv, 1,
+			vetorPonteiroComputeShader,
+			vP_CS_AtualizacaoRK, fd_log, fd, 2);
+#if true
+		Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferX, fd_log, 1, "ultimo ponto");
+		Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferX, fd_log, 2, "ultimo ponto");
+#endif
 
+		//copia dados da GPU para a CPU
+		g_pBufferX_novo = CreateAndCopyToDebugBuf(g_pDevice, g_pContext, g_pBufferX);
+		//mapeia os dados copiados
+		g_pContext->Map(g_pBufferX_novo, 0, D3D11_MAP_READ, 0, &MappedResource);
+		//cast dados copiados para float
+		X_novo = (float*)MappedResource.pData;
 
-		while (flag && y[Cor1] < 1e10)
+		//loop que percorre todas as celulas para verificar quais convergiram
+		for (size_t i_celula = 0; i_celula < total_celulas; i_celula++)
 		{
-			/* Integracao no tempo */
-			value = Runge_Kutta(y, x, Passo, Ndiv);
-			/* Conta numero de periodos de integracao e contador para periodicidade da solucao */
-			Tempo++;
-			Periodo++;
-			/* Avalia se ponto calculado é o mesmo ao inicial  */
-			retorno = 0;
-			for (ij = 0; ij < Nequ; ij++)
+			//testa se a celula ja havia convergido, caso nao, verifica se convergiu no passo atual
+			if (tabelaPeriodos[i_celula] == 0)
 			{
-				derro = fabs(y[ij] - y_old[ij]);
-				if (derro > 1.0e-8)
-					retorno++;
-				PeriodoBack = Periodo;
-			}
-			/*  Avalia retorno */
-			if (retorno == 0)
-			{
-				flag = 0;
-				continue;
-			}
-			/* Reinicia contador de periodos */
-			if (Periodo == PeriodoMaximo)
-			{
-				Periodo = 0;
-				/* Coordenadas iniciais para o novo ponto de analise (vetor x)*/
-				for (ij = 0; ij < Nequ; ij++)
-					y_old[ij] = y[ij];
-			}
-			/* Novo valor para vetor x  */
-			for (ij = 0; ij < Nequ; ij++)
-				x[ij] = y[ij];
-			/* Limita o numero de integracoes, caso nao exista solucao periodica  */
-			if (Tempo > 8000)
-				flag = 0;
-		}
-		/* Celula mapeada (atrator)  */
-		zo0atr = y[Cor1];
-		zo1atr = y[Cor2];
-
-		printf("%5d  /%6d / %6d", nome_thread, i + cell_inicio, cell_fim);
-		printf("   %15.12e   %15.12e %8d  %2d  \n", y[Cor1], y[Cor2], Tempo, Periodo);
-		/* Imprime resultados do atrator da celula */
-		if (Tempo < 8000 || retorno == 0)
-		{
-			if (Y1min <= y[Cor1])
-				//if(Y2min<=y[Cor1])
-			{
-				if (y[Cor1] <= Y1max)
-					//if(y[Cor1]<=Y2max)
+				// verifica se os atratores Cor1 e Cor2 nao divergiram ao infinito
+				if (X_novo[Cor1*total_celulas + i_celula] < 1e10 &&
+					X_novo[Cor2*total_celulas + i_celula] < 1e10)
 				{
-					if (y[Cor2] >= Y2min)
-						//if(y[Cor2]>=Y1min)
+					retorno = 0;
+					//verifica se o ponto calculado é o mesmo do inicial e atende o criterio de convergencia
+					for (int i_var = 0; i_var < Nequ; i_var++)
 					{
-						if (y[Cor2] <= Y2max)
-							//if(y[Cor2]<=Y1max)
+						derro = fabs(X0[i_var*total_celulas + i_celula] - X_novo[i_var*total_celulas + i_celula]);
+						if (derro > criterioConvergencia)
+							retorno++;
+					}
+					// avalia retorno se convergiu
+					if (retorno == 0)
+					{
+						//salva na tabela de periodos a periodidade da celula
+						tabelaPeriodos[i_celula] = i_per + 1;
+						//Se a celula convergiu verifica se ela não excedeu os limites estabelecidos pelos usuario
+						if (Y1min <= X_novo[Cor1*total_celulas + i_celula] &&
+							Y1max >= X_novo[Cor1*total_celulas + i_celula])
 						{
-							flag_periodica = 1;
+							if (Y2min <= X_novo[Cor2*total_celulas + i_celula] &&
+								Y2max >= X_novo[Cor2*total_celulas + i_celula])
+							{
+								// imprime no arquivo txt com formatacao periodica
+								fprintf(fd, "%d, %16.12e, %16.12e, %16.12e, %16.12e,",
+									(i_celula + 1), x[Cor1*total_celulas + i_celula], x[Cor2*total_celulas + i_celula],
+									X_novo[Cor1*total_celulas + i_celula], X_novo[Cor2*total_celulas + i_celula]);
+								for (int j = 0; j < Nequ; j++)
+								{
+									fprintf(fd, "%16.12e,  ", X_novo[j*total_celulas + i_celula]);
+								}
+								fprintf(fd, "%5d\n", numMaxPeriodos+ i_per+1);
+							}
 						}
 					}
+
 				}
+
 			}
 		}
-
-		fprintf(fd_thread, "%d, %16.12e, %16.12e, %16.12e, %16.12e,",
-			(i + cell_inicio + 1)*flag_periodica, xo[Cor1], xo[Cor2], y[Cor1], y[Cor2]);
-		for (j = 0; j < Nequ; j = j + 2)
-		{
-			fprintf(fd_thread, "%16.12e,  %16.12e,  ", y[j], y[j + 1]);
-		}
-		fprintf(fd_thread, "%5d, %5d\n", Tempo, nome_thread);
 	}
+	//apos pesquisar pela periodicidade em cada celula pelo maximo de tentativas
+	//salva aqueles que nao convergiram como pontos não periodicos
+	printf("OK\n");
 
-	fclose(fd_thread);
 
-	//system("pause");
-
-	FILE *fd_thread;
-	char arquivo_thd_leitura[50];
-	char temp_c;
-	int key_arquivo_leitura;
-	//transferade dados dos arquivos de cada thread para o arquivo raiz
-	for (int i = 0; i < n_max_thread; i++)
+	printf("Salvando respostas nao periodicas...");
+	//loop que percorre todas as celulas para verificar quais nao convergiram
+	for (size_t i_celula = 0; i_celula < total_celulas; i_celula++)
 	{
-		key_arquivo_leitura = sprintf(arquivo_thd_leitura, "bacia_results_%d.txt", i + 1);
-		fd_thread = fopen(arquivo_thd_leitura, "r");
-		if (fd_thread == NULL && key_arquivo_leitura != -1) {
-			printf("\n Nao foi possivel abrir arquivo de %s !\n", arquivo_thd_leitura);
-			exit(0);
-			return;
-		}
-
-		// le o conteudo do arquivo e grava no principal 
-		temp_c = fgetc(fd_thread);
-		while (temp_c != EOF)
+		//testa se a celula nao convergiu
+		if (tabelaPeriodos[i_celula] == 0)
 		{
-			fputc(temp_c, fd);
-			temp_c = fgetc(fd_thread);
-		}
-		fclose(fd_thread);
-
-		if (remove(arquivo_thd_leitura) == -1)
-		{
-			perror("Erro de remocao do arqivo:");
+			// imprime no arquivo txt com formatacao periodica
+			fprintf(fd, "%d, %16.12e, %16.12e, %16.12e, %16.12e,",
+				(-i_celula - 1), x[Cor1*total_celulas + i_celula], x[Cor2*total_celulas + i_celula],
+				X_novo[Cor1*total_celulas + i_celula], X_novo[Cor2*total_celulas + i_celula]);
+			for (int j = 0; j < Nequ; j++)
+			{
+				fprintf(fd, "%16.12e,  ", X_novo[j*total_celulas + i_celula]);
+			}
+			fprintf(fd, "%5d\n", numMaxPeriodos + PeriodoMaximo + 1);
 		}
 	}
+	printf("OK\n");
 
-	/*free(x);
-	free(y_old);
-	free(xo);
-	free(y);*/
-	fclose(fd);
-#endif // 1
+
 	return;
 	SAFE_RELEASE(g_pBufferK1_UAV);
 	SAFE_RELEASE(g_pBufferK2_UAV);
@@ -757,6 +765,8 @@ void CellsTrajec(void)
 	SAFE_RELEASE(g_pCS);
 	SAFE_RELEASE(g_pContext);
 	SAFE_RELEASE(g_pDevice);
+	SAFE_RELEASE(g_pBufferX_novo);
+	SAFE_RELEASE(g_pBufferX_inicial);
 }
 
 
@@ -766,8 +776,9 @@ void CellsTrajec(void)
 void main(void)
 {
 
-  printf("===============Calculo de Bacias de Atracao============\n");
-  printf("==================Metodo  da Forca Bruta===============\n\n\n");
+  printf("==============Calculo de Bacias de Atracao============\n");
+  printf("=================Metodo  da Forca Bruta===============\n");
+  printf("===============Execucao Distribuida em GPU============\n\n\n");
   NewData(  );
 
   //printf("entrei em Cells\n");
