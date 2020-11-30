@@ -10,14 +10,7 @@
   
 */
 
-#define _BACIA_C
-
-//definicao de diretivas de preprocessamento para impressao de arquivos de log ou RK para uma celula determinada
-#define _POINCARE_LOG		true
-#define _RUNGEKUTTA_LOG		true
-#if (_POINCARE_LOG || _RUNGEKUTTA_LOG || DEBUG)
-#define _NUM_CELL_LOG 2
-#endif
+#define _BACIA_GPU
 
 // inclusao dos cabecalhos do Directx
 #include <d3dcommon.h>
@@ -84,7 +77,6 @@ ID3D11UnorderedAccessView*  g_pBufferK3_UAV = nullptr;
 ID3D11UnorderedAccessView*  g_pBufferK4_UAV = nullptr;
 
 
-int numGroupThreads = 2;
 
 //--------------------------------------------------------------------------------------
 // Forward declarations 
@@ -588,18 +580,6 @@ void CellsTrajec(void)
 	// declaracao dos atratores
 	float derro = 0.0f, zo0atr = 0.0f, zo1atr = 0.0f;
 
-	FILE *fd_thread;
-
-	/* Abre arquivo de impressao   */
-	char nome_arquivo[50];
-	int arquivo_criado = sprintf(nome_arquivo, "bacia_results_%d.txt", nome_thread);
-	fd_thread = fopen(nome_arquivo, "w");
-	if (fd_thread == NULL && arquivo_criado != -1) {
-		printf("\n Nao foi possivel abrir arquivo de %s !\n", nome_arquivo);
-		exit(0);
-		return;
-	}
-
 	int const total_celulas = cell_fim - cell_inicio + 1;
 
 	std::vector<ID3D11ComputeShader*> vetorPonteiroComputeShader;
@@ -695,7 +675,7 @@ void CellsTrajec(void)
 	{
 		// executa o RK em pararelo para todas as celulas por um periodo suficientemente longo
 		sTempo timer(2);
-		Runge_Kutta(Passo, Ndiv, 5,
+		Runge_Kutta(Passo, Ndiv, 3000,
 			vetorPonteiroComputeShader,
 			vP_CS_AtualizacaoRK);
 	}
