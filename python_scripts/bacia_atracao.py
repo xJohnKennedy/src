@@ -51,13 +51,11 @@ def ler_dados():
 
 # %%
 # funcao gera e imprime grafico
-def gera_plot(path, data, total_linhas, correcao_frequencia):
+def gera_plot(path, data, total_linhas, correcao_frequencia, dx, dy, n_div_x,
+              n_div_y):
     import hashName
     pasta_hash: str = hashName.nome_hash(os.getcwd() + "\\" + path)
 
-    dx, dy = 0.5, 0.5
-    n_div_x = 21
-    n_div_y = 21
     y, x = np.mgrid[slice(-5 - dy / 2, 5 + dy, dy),
                     slice(-5 - dx / 2, 5 + dx, dx)]
 
@@ -178,8 +176,51 @@ def gera_plot(path, data, total_linhas, correcao_frequencia):
     pyplot.close('all')
 
 
-# %%
-if __name__ == "__main__":
+def perguntaConfigPlotagemBacia():
+    user_input = str(
+        input(
+            "\n =>> Digite configuracoes de plotagem no formato [dx, dy, numDiv_dx, numDiv_dy]:  "
+        ))
+    user_input = user_input.split(",")
+    return float(user_input[0]), float(user_input[1]), int(user_input[2]), int(
+        user_input[3])
+
+
+def verificaConfigPlotagemBacia():
+    arquivoPasta = os.path.dirname(__file__)
+    arquivoPath = arquivoPasta + "\\baciaPlotConfig.txt"
+
+    try:
+        #tenta abrir o arquivo de configuracao da ultima plotagem da bacia de atracao
+        #o arquivo de configuracao fica no mesmo diretorio que o arquivo bacia_atracao.py
+
+        #abre o arquivo
+        arquivo = open(arquivoPath, "r")
+        dx = float(arquivo.readline())
+        dy = float(arquivo.readline())
+        numDiv_dx = int(arquivo.readline())
+        numDiv_dy = int(arquivo.readline())
+        arquivo.close()
+
+        print("\n =>> Configuracoes de plotagem da bacia de atracao")
+        print("\n dx={:.3f}  dy={:.3f}  numDiv_dx={:d}  numDiv_dy={:d}".format(
+            dx, dy, numDiv_dx, numDiv_dy))
+        user_input = str(input("\n Manter estes dados [y/n]:  "))
+        if user_input.lower() == "n":
+            dx, dy, numDiv_dx, numDiv_dy = perguntaConfigPlotagemBacia()
+    except FileNotFoundError:
+        dx, dy, numDiv_dx, numDiv_dy = perguntaConfigPlotagemBacia()
+
+    #imprime o arquivo de configuracao caso nenhum erro tenha ocorrido e retorna os dados de config
+    arquivo = open(arquivoPath, "w")
+    arquivo.write("{}\n{}\n{}\n{}".format(dx, dy, numDiv_dx, numDiv_dy))
+    arquivo.close()
+
+    return dx, dy, numDiv_dx, numDiv_dy
+
+
+def main_func():
+    dx, dy, numDiv_dx, numDiv_dy = verificaConfigPlotagemBacia()
     path = cria_pasta_plots()
     data = ler_dados()
     shape = data[0].shape
@@ -188,4 +229,10 @@ if __name__ == "__main__":
     if (correcao_frequencia == None):
         correcao_frequencia = 1.0
     total_linhas = shape[0]
-    gera_plot(path, data[0], total_linhas, correcao_frequencia)
+    gera_plot(path, data[0], total_linhas, correcao_frequencia, dx, dy,
+              numDiv_dx, numDiv_dy)
+
+
+# %%
+if __name__ == "__main__":
+    main_func()
