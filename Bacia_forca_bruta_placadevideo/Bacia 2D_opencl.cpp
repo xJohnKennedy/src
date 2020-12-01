@@ -46,6 +46,8 @@ double Passo;
 double Y1min,Y1max,Y2min,Y2max;
 int Num_cel,Cor1,Cor2;
 double *q1,*q1p,*q2,*q2p;
+int numMaxPeriodos;
+double criterioConvergencia = 1.0e-5;
 
 //variavel para controle de criacao de arquivos de log somente na primeira chamanda do RK
 bool LimparArquivosLog = true;
