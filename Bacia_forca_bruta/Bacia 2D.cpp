@@ -33,6 +33,8 @@ double Passo;
 double Y1min,Y1max,Y2min,Y2max;
 int Num_cel,Cor1,Cor2;
 double *q1,*q1p,*q2,*q2p;
+int numMaxPeriodos;
+double criterioConvergencia = 1.0e-5;
 
 /******************Declaracoes das funcoes ******************/
 int Runge_Kutta(double *y, double *x, double Step, int Total);
@@ -134,7 +136,7 @@ void NewData(void)
 	rewind(fdread);
 
 	/* Dimension doof space */
-	fscanf(fdread, "%d\n", &PeriodoMaximo);
+	fscanf(fdread, "%d  %d\n", &PeriodoMaximo, &numMaxPeriodos);
 
 	/* Frequencia da forca excitadora, dados de amortecimentos e amplitudes da carga */
 	fscanf(fdread, "%lf\n", &Wf);
@@ -158,7 +160,7 @@ void NewData(void)
 	Tf = 2 * Pi / Wf;
 
 	/* Passo para integracao no tempo */
-	Passo = Tf / 500;
+	Passo = Tf / Ndiv;
 
 	/* Alocaao de vetores para o tamanho da celula */
 	q1 = (double*)calloc(Num_cel, sizeof(double));
@@ -386,7 +388,7 @@ void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const c
 		while (flag && y[Cor1] < 1e10)
 		{
 			/* Integracao no tempo */
-			value = Runge_Kutta(y, x, Passo, 500);
+			value = Runge_Kutta(y, x, Passo, Ndiv);
 			/* Conta numero de periodos de integracao e contador para periodicidade da solucao */
 			Tempo++;
 			Periodo++;
@@ -395,7 +397,7 @@ void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const c
 			for (ij = 0; ij < Nequ; ij++)
 			{
 				derro = fabs(y[ij] - y_old[ij]);
-				if (derro > 1.0e-8)
+				if (derro > criterioConvergencia)
 					retorno++;
 				PeriodoBack = Periodo;
 			}
@@ -417,7 +419,7 @@ void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const c
 			for (ij = 0; ij < Nequ; ij++)
 				x[ij] = y[ij];
 			/* Limita o numero de integracoes, caso nao exista solucao periodica  */
-			if (Tempo > 8000)
+			if (Tempo > numMaxPeriodos)
 				flag = 0;
 		}
 		/* Celula mapeada (atrator)  */
@@ -427,7 +429,7 @@ void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const c
 		printf("%5d  /%6d / %6d", nome_thread, i + cell_inicio, cell_fim);
 		printf("   %15.12e   %15.12e %8d  %2d  \n", y[Cor1], y[Cor2], Tempo, Periodo);
 		/* Imprime resultados do atrator da celula */
-		if (Tempo < 8000 || retorno == 0)
+		if (Tempo < numMaxPeriodos || retorno == 0)
 		{
 			if (Y1min <= y[Cor1])
 				//if(Y2min<=y[Cor1])
