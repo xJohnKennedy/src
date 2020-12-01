@@ -178,8 +178,7 @@ def gera_plot(path, data, total_linhas, correcao_frequencia):
     pyplot.close('all')
 
 
-# %%
-if __name__ == "__main__":
+def main_func():
     path = cria_pasta_plots()
     data = ler_dados()
     shape = data[0].shape
@@ -189,3 +188,8 @@ if __name__ == "__main__":
         correcao_frequencia = 1.0
     total_linhas = shape[0]
     gera_plot(path, data[0], total_linhas, correcao_frequencia)
+
+
+# %%
+if __name__ == "__main__":
+    main_func()
