@@ -402,7 +402,7 @@ void NewData(void)
 	rewind(fdread);
 
 	/* Dimension doof space */
-	fscanf(fdread, "%d\n", &PeriodoMaximo);
+	fscanf(fdread, "%d  %d\n", &PeriodoMaximo, &numMaxPeriodos);
 
 	/* Frequencia da forca excitadora, dados de amortecimentos e amplitudes da carga */
 	fscanf(fdread, "%lf\n", &Wf);
@@ -523,8 +523,7 @@ void CellsTrajec(void)
 	int num_cells_thread;
 	int n_max_thread;
 	long int cellnum;
-	int numMaxPeriodos = 3000;
-	double criterioConvergencia = 1.0e-2;
+
 
 	/* Abre arquivo de impressao   */
 	fd = fopen("bacia_results.txt", "w");
@@ -702,7 +701,7 @@ void CellsTrajec(void)
 	{
 		// executa o RK em pararelo para todas as celulas por um periodo suficientemente longo
 		sTempo timer(2);
-		Runge_Kutta(Passo, Ndiv, 3000,
+		Runge_Kutta(Passo, Ndiv, numMaxPeriodos,
 			vetorPonteiroComputeShader,
 			vP_CS_AtualizacaoRK);
 	}
