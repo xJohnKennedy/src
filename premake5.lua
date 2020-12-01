@@ -314,6 +314,112 @@ workspace "RUNGE_FORCA_BRUTA_BACIA"                   -- Solution Name
 			   postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe .\\"}
 			   postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe ..\\..\\_bin\\"}
 	
+	-------------------------------
+	-- [ PROJECT CONFIGURATION ] --
+	------------------------------- 
+	project "Bacia_forca_bruta_placadevideo"
+		kind "ConsoleApp" -- "WindowApp" removes console
+		language "C"
+		
+		-- where the output binary goes. 	
+		-- -> exe/Debug/Rkutta
+		-- -> exe/Release/Rkutta
+		targetdir "exe/%{cfg.buildcfg}/%{prj.name}"
+		
+		-- where the output binary goes. 	
+		-- -> obj/Debug/Rkutta
+		-- -> obj/Release/Rkutta
+		objdir "obj/%{cfg.buildcfg}/%{prj.name}"
+		
+		-- the name of the executable saved to targetdir		
+		-- -> Rkutta.exe
+		targetname "%{prj.name}"
+
+
+		--------------------------------------
+		-- [ PROJECT FILES CONFIGURATIONS ] --
+		--------------------------------------
+		local SourceDir = ROOT .. "src/%{prj.name}/";	--../src/Bacia_forca_bruta/
+		-- what files the visual studio project/makefile/etc should know about
+		files
+		{ 
+		  SourceDir .. "**.h", 
+		  SourceDir .. "**.hpp", 
+		  SourceDir .. "**.c", 
+		  SourceDir .. "**.cpp", 
+		  SourceDir .. "**.tpp",
+		  "**.h", "**.hpp", "**.c", "**.cpp", "**.tpp",
+		}
+
+		-- Exclude template files from project (so they don't accidentally get compiled)
+		filter { "files:**.tpp" }
+		  flags {"ExcludeFromBuild"}
+		
+		filter { "configurations:Release_Windows_7" }
+		  flags {"ExcludeFromBuild"}
+
+		filter {} -- clear filter!
+
+
+		-- setting up visual studio filters (basically virtual folders).
+		vpaths 
+		{
+		  ["Header Files/*"] = { SourceDir .. "**.h", SourceDir .. "**.hxx", SourceDir .. "**.hpp" },
+		  ["Source Files/*"] = { SourceDir .. "**.c", SourceDir .. "**.cxx", SourceDir .. "**.cpp" },
+		}
+
+
+		-- where to find header files that you might be including, mainly for library headers.
+		includedirs
+		{
+			"./",				--./
+			ROOT .. "src/",		--../src/
+			SourceDir			--../src/Bacia_forca_bruta/  -- include root source directory to allow for absolute include paths
+		  -- include the headers of any libraries/dlls you need
+		}
+
+
+		-------------------------------------------
+		-- [ PROJECT DEPENDENCY CONFIGURATIONS ] --
+		-------------------------------------------
+		libdirs
+		{
+		  -- add dependency directories here
+		}
+
+		links
+		{ 
+		  -- add depedencies (libraries) here
+		  "d3d11.lib", "d3dcompiler.lib", "dxguid.lib", "winmm.lib", "comctl32.lib", "usp10.lib"
+		}
+
+		--------------------------------------------------------
+		---- [ CUSTOM BUILD COMMANDS FOR DIRECTX COMPILER ] ----
+		--------------------------------------------------------
+		buildmessage 'Copiadndo D3D DLL'
+		buildcommands
+		{
+			'copy /y "$(WindowsSdkDir)redist\\d3d\\x64\\D3DCompile*.DLL" "$(TargetDir)"'
+		}
+		buildoutputs 
+		{
+			 '$(TargetDir)D3DCompile_46.DLL' 
+		}
+
+
+		-------------------------------------------
+		--------- [ POST BUILD COMMANDS ] ---------
+		-------------------------------------------
+
+		configuration "Release"
+			   postbuildcommands { "cd ..\\exe\\Release"}
+			   postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe .\\"}
+			   postbuildcommands { "copy %{prj.name}\\D3DCompile*.DLL .\\"}
+			   postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe ..\\..\\_bin\\"}
+			   postbuildcommands { "copy %{prj.name}\\D3DCompile*.DLL ..\\..\\_bin\\"}
+	
+	
+	
 	
 	-------------------------------------------
 	--   [ COPYING CONFIGURATION FILES ]   --
