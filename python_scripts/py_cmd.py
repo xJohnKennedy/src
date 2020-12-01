@@ -5,8 +5,9 @@ import bacia_atracao as BaciaAtracao
 import os, getopt, sys
 
 if __name__ == "__main__":
+    currentWorkingDirectory = os.getcwd()
     while (True):
-        msg: str = "\n[OPCAO] <, ARGUMENTOS>\n" + \
+        msg: str ="\n\n" + currentWorkingDirectory + ">>>>>" + "\n[OPCAO] <, ARGUMENTOS>\n" + \
             "[1]: plotar secao de Poincare <-p> = numero de pontos de poincare\n" + \
             "[2]: plotar plano fase <-f> = numero de pontos do plano fase\n" + \
             "[3]: plotar resposta no tempo <-t> = numero de pontos da resposta no tempo\n" + \
