@@ -448,6 +448,18 @@ void NewData(void)
 	Y1max = b;
 	Y2min = c;
 	Y2max = d;
+	
+	fclose(fdread);
+
+	//ler numGroupThreads de arquivo de configuracao
+	fdread = fopen("numGroupThreads.dat", "r");
+	if (fdread == NULL) {
+		printf("\n Nao foi possivel abrir arquivo numGroupThreads.dat!\n");
+		exit(0);
+		return;
+	}
+	fscanf(fdread, "%d", &numGroupThreads);
+	fclose(fdread);
 
 	return;
 }
@@ -569,6 +581,15 @@ void CellsTrajec(void)
 
 	std::vector<ID3D11ComputeShader*> vetorPonteiroComputeShader;
 	std::vector<ID3D11ComputeShader*> vP_CS_AtualizacaoRK;
+
+	printf("Verificacao do NUM_MAX_THD_PER_WORKGROUP e numGroupThreads...");
+	if (NUM_MAX_THD_PER_WORKGROUP*numGroupThreads != Num_cel)
+	{
+		printf("\n Aviso: numero total de threads a executar e diferente do numero de celulas\n");
+		printf(" NUM_MAX_THD_PER_WORKGROUP = %d\n numGroupThreads = %d \n Num_celulas = %d", NUM_MAX_THD_PER_WORKGROUP, numGroupThreads, Num_cel);
+		exit(0);
+	}
+	printf("OK\n");
 
 	printf("Inicializando variaveis das celulas e buffer constante...");
 	inicializaVariaveisdeEntrada(total_celulas, cell_inicio, x, y_old, xo, y, &ConstantBuffer);
