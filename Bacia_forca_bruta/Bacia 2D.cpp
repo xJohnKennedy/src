@@ -33,6 +33,8 @@ double Passo;
 double Y1min,Y1max,Y2min,Y2max;
 int Num_cel,Cor1,Cor2;
 double *q1,*q1p,*q2,*q2p;
+int numMaxPeriodos;
+double criterioConvergencia = 1.0e-5;
 
 /******************Declaracoes das funcoes ******************/
 int Runge_Kutta(double *y, double *x, double Step, int Total);
@@ -158,7 +160,7 @@ void NewData(void)
 	Tf = 2 * Pi / Wf;
 
 	/* Passo para integracao no tempo */
-	Passo = Tf / 500;
+	Passo = Tf / Ndiv;
 
 	/* Alocaao de vetores para o tamanho da celula */
 	q1 = (double*)calloc(Num_cel, sizeof(double));
@@ -386,7 +388,7 @@ void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const c
 		while (flag && y[Cor1] < 1e10)
 		{
 			/* Integracao no tempo */
-			value = Runge_Kutta(y, x, Passo, 500);
+			value = Runge_Kutta(y, x, Passo, Ndiv);
 			/* Conta numero de periodos de integracao e contador para periodicidade da solucao */
 			Tempo++;
 			Periodo++;
