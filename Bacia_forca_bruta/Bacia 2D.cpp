@@ -397,7 +397,7 @@ void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const c
 			for (ij = 0; ij < Nequ; ij++)
 			{
 				derro = fabs(y[ij] - y_old[ij]);
-				if (derro > 1.0e-8)
+				if (derro > criterioConvergencia)
 					retorno++;
 				PeriodoBack = Periodo;
 			}
