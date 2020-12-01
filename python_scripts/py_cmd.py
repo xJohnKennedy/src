@@ -1,6 +1,7 @@
 import secao_de_poicare_plots as poincare
 import plano_fase_plots as planoFase
 import resposta_no_tempo_plots as respostaNoTempo
+import bacia_atracao as BaciaAtracao
 import os, getopt, sys
 
 if __name__ == "__main__":
@@ -11,7 +12,8 @@ if __name__ == "__main__":
             "[3]: plotar resposta no tempo <-t> = numero de pontos da resposta no tempo\n" + \
             "     t = -1 plotar todos os pontos\n" + \
             "[4]: plotar [1],[2]\n"+\
-            "[5]: plotar [1],[2],[3]\n"
+            "[5]: plotar [1],[2],[3]\n" + \
+            "[6]: plotar bacia de atracao\n"
 
         print(msg)
         user_input = str(input("\nExecutar:  "))
@@ -61,3 +63,5 @@ if __name__ == "__main__":
             planoFase.main_func(numPontosPlanoFase)
             respostaNoTempo.main_func(numPontosRespostaTempo)
             os.system("pause")
+        elif user_input == 6:
+            BaciaAtracao.main_func()
