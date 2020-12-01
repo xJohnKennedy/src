@@ -60,7 +60,7 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, dx, dy, n_div_x,
                     slice(-5 - dx / 2, 5 + dx, dx)]
 
     z = []
-    z0 = np.zeros((n_div_x, n_div_y))
+    z0 = np.zeros((n_div_y, n_div_x))
 
     ################
     #cria um array com os atratorez de cada célula
