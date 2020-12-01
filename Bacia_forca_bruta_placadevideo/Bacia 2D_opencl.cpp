@@ -132,8 +132,8 @@ void CellsTrajec(void);
 void CellsTrajec_core(int const nome_thread, int const cell_inicio, int const cell_fim);
 
 
-/*===========================  Func  ===========================*/
-
+/*===========================  HASH_KERNEL  ===========================*/
+#include "_config_modelo/hash_kernel.h"
 
 /*===========================  Runge_Kutta  ===========================*/
 int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
@@ -532,22 +532,6 @@ void CellsTrajec(void)
 		return;
 	}
 
-
-
-
-	// inicializa threads de execucao
-	printf("-->>>> Nao exceder a qtde de nucleos fisicos\n");
-	printf("-->>>> Numero de threads : ");
-#if false
-	scanf("%d", &n_max_thread);
-	printf("\n\n");
-
-	if (n_max_thread < 1)
-	{
-		printf("\n Numero maximo de threads menor que 1!\n");
-		exit(0);
-	}
-#endif
 	n_max_thread = 1;
 
 	/* Imprime cabecalho na tela */
@@ -594,6 +578,46 @@ void CellsTrajec(void)
 		exit(0);
 	printf("OK\n");
 
+	printf("Verificando hash do kernel...\n");
+	{
+		WCHAR str[MAX_PATH];
+		HRESULT hr = FindDXSDKShaderFileCch(str, MAX_PATH, L"hash_kernel.txt");
+		if (FAILED(hr))
+			return;
+		//wprintf(L"%s\n", str);
+
+
+		//converte wide-character string to multibyte string
+		const wchar_t * p = str;
+		mbstate_t mbs;
+		char buffer[MAX_PATH];
+		int ret;
+
+		mbrlen(NULL, 0, &mbs);    /* initialize mbs */
+		ret = wcsrtombs(buffer, &p, sizeof(buffer), &mbs);
+		if (ret == MAX_PATH) buffer[MAX_PATH-1] = '\0';
+		if (ret) printf("%s\n", buffer);
+
+		FILE    *fd_hashKernel;
+		fd_hashKernel = fopen(buffer, "r");
+		if (fd_hashKernel == NULL) {
+			printf("\n Nao foi possivel abrir arquivo hash_kernel.txt!\n");
+			exit(0);
+			return;
+		}
+		char hash_kernel[50];
+		fscanf(fd_hashKernel, "%s", &hash_kernel);
+		if (strcmp(hash_kernel, strGlobalHash) != 0)
+		{
+			printf("\n A hash do codigo compilado esta diferente da hash fornecida pelo kernel directx !! \n");
+			exit(0);
+			return;
+		}
+		fclose(fd_hashKernel);
+	}
+	printf("OK\n");
+
+
 	printf("Criando Compute Shader...\n");
 	{
 		char buffer_name[50];
@@ -602,6 +626,7 @@ void CellsTrajec(void)
 		for (int i = 0; i < Nequ/2; i++)
 		{
 			//armazena nome do kernel
+			numCaracteresEscritos = 0;
 			printf("Compilando kernel %d...", i+1);
 			numCaracteresEscritos = sprintf(buffer_name, "kernel_f%d.hlsl", i+1);
 			name_WC = (wchar_t *)malloc((numCaracteresEscritos + 1) * sizeof(wchar_t));
@@ -827,7 +852,7 @@ void main(void)
   printf("==============Calculo de Bacias de Atracao============\n");
   printf("=================Metodo  da Forca Bruta===============\n");
   printf("===============Execucao Distribuida em GPU============\n\n\n");
-  NewData(  );
+  NewData();
 
   //printf("entrei em Cells\n");
   CellsTrajec();
