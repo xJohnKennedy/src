@@ -183,11 +183,12 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
 def perguntaConfigPlotagemBacia():
     user_input = str(
         input(
-            "\n =>> Digite configuracoes de plotagem no formato [dx, dy, numDiv_dx, numDiv_dy]:  "
+            "\n =>> Digite configuracoes de plotagem no formato [x1, x2, y1, y2, numDiv_dx, numDiv_dy]:  "
         ))
     user_input = user_input.split(",")
-    return float(user_input[0]), float(user_input[1]), int(user_input[2]), int(
-        user_input[3])
+    return float(user_input[0]), float(user_input[1]), float(
+        user_input[2]), float(user_input[3]), int(user_input[4]), int(
+            user_input[5])
 
 
 def verificaConfigPlotagemBacia():
@@ -200,31 +201,36 @@ def verificaConfigPlotagemBacia():
 
         #abre o arquivo
         arquivo = open(arquivoPath, "r")
-        dx = float(arquivo.readline())
-        dy = float(arquivo.readline())
+        x1 = float(arquivo.readline())
+        x2 = float(arquivo.readline())
+        y1 = float(arquivo.readline())
+        y2 = float(arquivo.readline())
         numDiv_dx = int(arquivo.readline())
         numDiv_dy = int(arquivo.readline())
         arquivo.close()
 
         print("\n =>> Configuracoes de plotagem da bacia de atracao")
-        print("\n dx={:.3f}  dy={:.3f}  numDiv_dx={:d}  numDiv_dy={:d}".format(
-            dx, dy, numDiv_dx, numDiv_dy))
+        print(
+            "\n x1={:.5f}  x2={:.5f}  y1={:.5f}  y2={:.5f}  numDiv_dx={:d}  numDiv_dy={:d}"
+            .format(x1, x2, y1, y2, numDiv_dx, numDiv_dy))
         user_input = str(input("\n Manter estes dados [y/n]:  "))
         if user_input.lower() == "n":
-            dx, dy, numDiv_dx, numDiv_dy = perguntaConfigPlotagemBacia()
+            x1, x2, y1, y2, numDiv_dx, numDiv_dy = perguntaConfigPlotagemBacia(
+            )
     except FileNotFoundError:
-        dx, dy, numDiv_dx, numDiv_dy = perguntaConfigPlotagemBacia()
+        x1, x2, y1, y2, numDiv_dx, numDiv_dy = perguntaConfigPlotagemBacia()
 
     #imprime o arquivo de configuracao caso nenhum erro tenha ocorrido e retorna os dados de config
     arquivo = open(arquivoPath, "w")
-    arquivo.write("{}\n{}\n{}\n{}".format(dx, dy, numDiv_dx, numDiv_dy))
+    arquivo.write("{:.5f}\n{:.5f}\n{:.5f}\n{:.5f}\n{}\n{}".format(
+        x1, x2, y1, y2, numDiv_dx, numDiv_dy))
     arquivo.close()
 
-    return dx, dy, numDiv_dx, numDiv_dy
+    return x1, x2, y1, y2, numDiv_dx, numDiv_dy
 
 
 def main_func():
-    dx, dy, numDiv_dx, numDiv_dy = verificaConfigPlotagemBacia()
+    x1, x2, y1, y2, numDiv_dx, numDiv_dy = verificaConfigPlotagemBacia()
     path = cria_pasta_plots()
     data = ler_dados()
     shape = data[0].shape
@@ -233,7 +239,7 @@ def main_func():
     if (correcao_frequencia == None):
         correcao_frequencia = 1.0
     total_linhas = shape[0]
-    gera_plot(path, data[0], total_linhas, correcao_frequencia, dx, dy,
+    gera_plot(path, data[0], total_linhas, correcao_frequencia, x1, x2, y1, y2,
               numDiv_dx, numDiv_dy)
 
 
