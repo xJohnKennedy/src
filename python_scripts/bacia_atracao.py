@@ -51,13 +51,17 @@ def ler_dados():
 
 # %%
 # funcao gera e imprime grafico
-def gera_plot(path, data, total_linhas, correcao_frequencia, dx, dy, n_div_x,
-              n_div_y):
+def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
+              n_div_x: int, n_div_y: int):
     import hashName
     pasta_hash: str = hashName.nome_hash(os.getcwd() + "\\" + path)
 
-    y, x = np.mgrid[slice(-5 - dy / 2, 5 + dy, dy),
-                    slice(-5 - dx / 2, 5 + dx, dx)]
+    # calculo de dx e dy
+    dx = abs((x2 - x1) / (n_div_x - 1))
+    dy = abs((y2 - y1) / (n_div_y - 1))
+
+    y, x = np.mgrid[slice(y1 - dy / 2, y2 + dy, dy),
+                    slice(x1 - dx / 2, x2 + dx, dx)]
 
     z = []
     z0 = np.zeros((n_div_y, n_div_x))
