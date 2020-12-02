@@ -97,7 +97,10 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
             tree = spatial.KDTree(listaAtratores)
             pontosProximos = tree.query_ball_point(
                 listaAtratores[id_periodico], 0.01)
-            print(pontosProximos)
+            # imprime na tela o atrator que está sob analise
+            print("==> Atrator encontrado[] d1 = {:f}, d2 = {:f}\n".format(
+                listaAtratores[id_periodico][0],
+                listaAtratores[id_periodico][1]))
         else:
             pontosProximos = np.zeros(listaIndices.size, dtype='int32')
             for i in range(listaIndices.size):
@@ -211,7 +214,7 @@ def verificaConfigPlotagemBacia():
 
         print("\n =>> Configuracoes de plotagem da bacia de atracao")
         print(
-            "\n x1={:.5f}  x2={:.5f}  y1={:.5f}  y2={:.5f}  numDiv_dx={:d}  numDiv_dy={:d}"
+            "\n x1= {:.5f}  x2= {:.5f}  y1= {:.5f}  y2= {:.5f}  numDiv_dx= {:d}  numDiv_dy= {:d}"
             .format(x1, x2, y1, y2, numDiv_dx, numDiv_dy))
         user_input = str(input("\n Manter estes dados [y/n]:  "))
         if user_input.lower() == "n":
