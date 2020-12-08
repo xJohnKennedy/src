@@ -5,6 +5,7 @@ import matplotlib.pyplot as pyplot
 import numpy as np
 import os
 import pandas as pandas
+import sys
 
 # %%
 # template Jonathas Kennedy 26/03/2020
@@ -233,6 +234,9 @@ def verificaConfigPlotagemBacia():
 
 
 def main_func():
+    #solucao para erro recursivo quando executando a busca kd-tree em grandes matrizes
+    #https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.KDTree.html#scipy.spatial.KDTree
+    sys.setrecursionlimit(10000)
     x1, x2, y1, y2, numDiv_dx, numDiv_dy = verificaConfigPlotagemBacia()
     path = cria_pasta_plots()
     data = ler_dados()
