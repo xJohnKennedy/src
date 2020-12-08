@@ -311,7 +311,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 			// calcula correcao final baseado no valor de y0, k1, k2, k3, k4
 			{
 				ID3D11UnorderedAccessView* aRViews[6] = { g_pBufferX_UAV, g_pBufferK1_UAV, g_pBufferK2_UAV, g_pBufferK3_UAV , g_pBufferK4_UAV, g_pBufferY_UAV };
-				RunComputeShader(g_pContext, vP_CS_AtualizacaoRK[2], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 6, aRViews, numGroupThreads, 1, 1);
+				RunComputeShader(g_pContext, vP_CS_AtualizacaoRK[2], 0, nullptr, g_pConstantBuffer, &ConstantBuffer, sizeof(ConstantBuffer), 6, aRViews, numGroupThreadsFinalPasso, 1, 1);
 #ifdef DEBUG
 				Salva_log_Rkutta(g_pDevice, g_pContext, g_pBufferY, fd_rk_completelog, _NUM_CELL_LOG, "novo_y_correcao_baseado_em_k1_k2_k3_k4\n");
 #endif // DEBUG
@@ -458,7 +458,8 @@ void NewData(void)
 		exit(0);
 		return;
 	}
-	fscanf(fdread, "%d", &numGroupThreads);
+	fscanf(fdread, "%d\n", &numGroupThreads);
+	fscanf(fdread, "%d", &numGroupThreadsFinalPasso);
 	fclose(fdread);
 
 	return;
@@ -590,6 +591,16 @@ void CellsTrajec(void)
 		exit(0);
 	}
 	printf("OK\n");
+
+	printf("Verificacao do NUM_MAX_THD_PER_WORKGROUP_FINAL_PASSO e numGroupThreadsFinalPasso...");
+	if (NUM_MAX_THD_PER_WORKGROUP_FINAL_PASSO*numGroupThreadsFinalPasso != Num_cel)
+	{
+		printf("\n Aviso: numero total de threads a executar e diferente do numero de celulas\n");
+		printf(" NUM_MAX_THD_PER_WORKGROUP_FINAL_PASSO = %d\n numGroupThreadsFinalPasso = %d \n Num_celulas = %d", NUM_MAX_THD_PER_WORKGROUP_FINAL_PASSO, numGroupThreadsFinalPasso, Num_cel);
+		exit(0);
+	}
+	printf("OK\n");
+
 
 	printf("Inicializando variaveis das celulas e buffer constante...");
 	inicializaVariaveisdeEntrada(total_celulas, cell_inicio, x, y_old, xo, y, &ConstantBuffer);

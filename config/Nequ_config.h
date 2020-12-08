@@ -15,4 +15,5 @@ int Nt_temp = 500;
 #define _NUM_CELL_LOG 2
 #endif
 int numGroupThreads;
+int numGroupThreadsFinalPasso;
 #endif // _BACIA_GPU
