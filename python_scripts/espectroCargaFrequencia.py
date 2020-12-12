@@ -5,6 +5,7 @@ import matplotlib.pyplot as pyplot
 import numpy as np
 import os
 import pandas as pandas
+from scanf import scanf
 
 # %%
 # template Jonathas Kennedy 26/03/2020
@@ -34,7 +35,7 @@ pyplot.rcParams['agg.path.chunksize'] = 10000
 # pasta onde armazena os plots
 def cria_pasta_plots(pontos):
 
-    path = "bifurcacao"
+    path = "espectro_freq_carga"
     for i in pontos:
         path = path + "_c%s" % (i)
     path = path + "\\"
@@ -66,74 +67,97 @@ def filtraTrechos(data):
 
 
 # %%
+# analisa dados e gera os pontos de início e fim(duracao) das barras dos trechos instaveis
+def geraDadosBarras(data, pontos):
+    num_max_tentativas = 20
+    num_max_tentativas = num_max_tentativas - 1
+
+    data_freq = []
+    for i in pontos:
+        #le arquivo Forca.dat para extrair a frequencia
+        arquivo = open("..\\ponto %s\\Forca.dat" % (i), "r")
+        arq_lines = arquivo.readlines()
+        #trata os dados com o scanf
+        pattern = '%d  %f \n'
+        dados = scanf(pattern, arq_lines[4])
+        data_freq.append(dados[1])
+
+    data_plot_freq = []
+    data_plot_duracao_carga = []
+    data_plot_carga_inicial = []
+    #percorre os dados procurando os trechos intaveis
+    contador = -1
+    for data_i in data:
+        contador = contador + 1
+        trecho_estavel = True
+        encontrou_trechoAnalise = False
+        possivel_fim_trechoAnalise = False
+        for data_linha in data_i:
+            if data_linha[2] > 1 and encontrou_trechoAnalise == False:
+                #possivel trecho instavel
+                if data_linha[2] > num_max_tentativas:
+                    #trecho instavel
+                    trecho_estavel = False
+                    encontrou_trechoAnalise = True
+            elif data_linha[2] < 2:
+                if encontrou_trechoAnalise == False:
+                    carga_inicial = data_linha[1]
+                elif encontrou_trechoAnalise == True and possivel_fim_trechoAnalise == False:
+                    #possivel termino do trecho_de analise instavel
+                    possivel_fim_trechoAnalise = True
+                    carga_inicial_temp = data_linha[1]
+                else:
+                    trecho_estavel = True
+                    possivel_fim_trechoAnalise = False
+            elif possivel_fim_trechoAnalise == True:
+                possivel_fim_trechoAnalise = False
+
+            if trecho_estavel == True and encontrou_trechoAnalise == True:
+                encontrou_trechoAnalise = False
+                trecho_estavel = True
+                data_plot_freq.append(data_freq[contador])
+                data_plot_duracao_carga.append(carga_inicial_temp -
+                                               carga_inicial)
+                data_plot_carga_inicial.append(carga_inicial)
+                carga_inicial = carga_inicial_temp
+
+        if encontrou_trechoAnalise == True:
+            data_plot_freq.append(data_freq[contador])
+            data_plot_duracao_carga.append(data_linha[1] - carga_inicial)
+            data_plot_carga_inicial.append(carga_inicial)
+    return data_plot_freq, data_plot_duracao_carga, data_plot_carga_inicial
+
+
+# %%
 # funcao gera e imprime grafico
-def gera_plot(path, data, total_variaveis, correcao_frequencia, pontos):
+def gera_plot(path, data_plot_freq, data_plot_duracao_carga,
+              data_plot_carga_inicial, correcao_frequencia, pontos):
     import hashName
     pasta_hash: str = hashName.nome_hash(os.getcwd() + "\\" + path)
-    for variavel in range(1, int(total_variaveis + 1)):
-        nomde_grafico = pasta_hash + '_C%s' % (variavel)
-        print(nomde_grafico)
-        col = 4 * variavel - 2
-        print("col = %d" % (col))
 
-        # matplotlib plot
-        # figura deve ser definida como subplots e retornas os axes para posterior configuracao do tick format
-        fig, ax = pyplot.subplots(1, 1, figsize=(10, 10))
+    nomde_grafico = pasta_hash + '_C%s' % (1)
+    print(nomde_grafico)
 
-        Data_caminhos = []
-        for i in range(len(pontos)):
-            Data_caminhos.append(i)
+    # matplotlib plot
+    # figura deve ser definida como subplots e retornas os axes para posterior configuracao do tick format
+    fig, ax = pyplot.subplots(1, 1, figsize=(10, 10))
 
-        minData1X = 1e9
-        maxData1X = -1e9
-        minData1Y = 1e9
-        maxData1Y = -1e9
+    num_pontos = len(pontos)
+    minData1X = min(data_plot_freq)
+    maxData1X = max(data_plot_freq)
+    tamanho_barra = (maxData1X - minData1X) / (num_pontos - 1)
 
-        for i in Data_caminhos:
-            data_1__x = []
-            data_1__y = []
-
-            shape = data[i].shape
-            for j in range(0, shape[0]):
-                data_1__y.append(data[i][j, col])
-                data_1__x.append(data[i][j, 1] * correcao_frequencia)
-            print("Nummero de pontos caminho %s = %i" % (pontos[i], shape[0]))
-
-            config_plot = dict(marker='o', color='blue', s=10)
-            pyplot.scatter(data_1__x, data_1__y, **config_plot)
-
-            # saving file to load in another python file
-            # https://stackoverflow.com/questions/48912527/how-to-join-two-matplotlib-figures
-            np.savez(path + nomde_grafico + '_c_' + str(pontos[i]) + '.npz',
-                     method='scatter',
-                     args=(data_1__x, data_1__y),
-                     kwargs=config_plot)
-
-            #calculo maximos e minimos do grafico
-            minData1X = min([min(data_1__x), minData1X])
-            maxData1X = max([max(data_1__x), maxData1X])
-            minData1Y = min([min(data_1__y), minData1Y])
-            maxData1Y = max([max(data_1__y), maxData1Y])
-
-        pyplot.xlim(minData1X - 0.01 * abs(minData1X),
-                    maxData1X + 0.01 * abs(maxData1X))
-        pyplot.ylim(minData1Y - 0.01 * abs(minData1Y),
-                    maxData1Y + 0.01 * abs(maxData1Y))
-        pyplot.ylabel(r'$W_{' + str(variavel) + '}/h$')
-        pyplot.xlabel(r'$\omega_{1}/\omega_{0}$')
-        pyplot.ticklabel_format(axis='both',
-                                style='sci',
-                                scilimits=(0, 0),
-                                useOffset=False)
-        #ax.xaxis.set_major_formatter(pyplot.FuncFormatter('{:.2f}'.format))
-        #ax.yaxis.set_major_formatter(pyplot.FuncFormatter('{:.2f}'.format))
-        pyplot.savefig(path + nomde_grafico + '.png',
-                       dpi=300,
-                       bbox_inches='tight')
-        #pyplot.show()
-        pyplot.cla()
-        pyplot.clf()
-        pyplot.close('all')
+    ax.bar(data_plot_freq,
+           data_plot_duracao_carga,
+           tamanho_barra,
+           bottom=data_plot_carga_inicial)
+    #ax.xaxis.set_major_formatter(pyplot.FuncFormatter('{:.2f}'.format))
+    #ax.yaxis.set_major_formatter(pyplot.FuncFormatter('{:.2f}'.format))
+    pyplot.savefig(path + nomde_grafico + '.png', dpi=300, bbox_inches='tight')
+    pyplot.show()
+    pyplot.cla()
+    pyplot.clf()
+    pyplot.close('all')
 
 
 # %%
@@ -142,11 +166,14 @@ if __name__ == "__main__":
     pontos = pontos.split(",")
     path = cria_pasta_plots(pontos)
     data = ler_dados(pontos)
-    filtraTrechos(data)
+    data = filtraTrechos(data)
+    data_plot_freq, data_plot_duracao_carga, data_plot_carga_inicial = geraDadosBarras(
+        data, pontos)
     shape = data[0].shape
     # correcao de frequencia
     correcao_frequencia = None
     if (correcao_frequencia == None):
         correcao_frequencia = 1.0
     total_variaveis = (shape[1] - 4) / 4
-    gera_plot(path, data, total_variaveis, correcao_frequencia, pontos)
+    gera_plot(path, data_plot_freq, data_plot_duracao_carga,
+              data_plot_carga_inicial, correcao_frequencia, pontos)
