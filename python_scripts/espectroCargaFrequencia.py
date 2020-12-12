@@ -55,6 +55,17 @@ def ler_dados(pontos):
 
 
 # %%
+# filtra dados
+def filtraTrechos(data):
+    data_del = []
+    for data_i in data:
+        shape_data = data_i.shape
+        colunas_deletar = slice(2, shape_data[1] - 1 - 1)
+        data_del.append(np.delete(data_i, colunas_deletar, axis=1))
+    return data_del
+
+
+# %%
 # funcao gera e imprime grafico
 def gera_plot(path, data, total_variaveis, correcao_frequencia, pontos):
     import hashName
@@ -131,6 +142,7 @@ if __name__ == "__main__":
     pontos = pontos.split(",")
     path = cria_pasta_plots(pontos)
     data = ler_dados(pontos)
+    filtraTrechos(data)
     shape = data[0].shape
     # correcao de frequencia
     correcao_frequencia = None
