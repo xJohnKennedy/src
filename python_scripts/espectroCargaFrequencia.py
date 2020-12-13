@@ -36,8 +36,7 @@ pyplot.rcParams['agg.path.chunksize'] = 10000
 def cria_pasta_plots(pontos):
 
     path = "espectro_freq_carga"
-    for i in pontos:
-        path = path + "_c%s" % (i)
+    path = path + "_c%s" % (pontos)
     path = path + "\\"
     if not os.path.exists(path):
         os.makedirs(path)
@@ -163,8 +162,32 @@ def gera_plot(path, data_plot_freq, data_plot_duracao_carga,
 # %%
 if __name__ == "__main__":
     pontos = str(input("Caminhos para plotar <caminho 1,caminho 2>: "))
-    pontos = pontos.split(",")
     path = cria_pasta_plots(pontos)
+    if '$' in pontos:
+
+        tradutor = pontos.split("-")
+        nome = tradutor[0]
+        #conta ocorrencias de $ na string formadora dos nomes
+        count = 0
+        for i in nome:
+            if i == '$':
+                count = count + 1
+        conjunto_gerador = [nome]
+        conjunto_gerado = []
+        for i in range(count):
+            #obtem os codigos a substituir
+            cod_subs = tradutor[i + 1]
+            if '#' in cod_subs:
+                cod_subs = cod_subs.split("#")
+                cod_subs = range(int(cod_subs[0]), int(cod_subs[1]) + 1)
+            for j in conjunto_gerador:
+                for k in cod_subs:
+                    conjunto_gerado.append(j.replace('$', str(k), 1))
+            conjunto_gerador = conjunto_gerado
+            conjunto_gerado = []
+        pontos = conjunto_gerador
+    else:
+        pontos = pontos.split(",")
     data = ler_dados(pontos)
     data = filtraTrechos(data)
     data_plot_freq, data_plot_duracao_carga, data_plot_carga_inicial = geraDadosBarras(
