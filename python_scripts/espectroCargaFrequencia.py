@@ -135,7 +135,7 @@ def gera_plot(path, data_plot_freq, data_plot_duracao_carga,
     import hashName
     pasta_hash: str = hashName.nome_hash(os.getcwd() + "\\" + path)
 
-    nomde_grafico = pasta_hash + '_C%s' % (1)
+    nomde_grafico = pasta_hash + '_Espectro'
     print(nomde_grafico)
 
     # matplotlib plot
@@ -148,10 +148,15 @@ def gera_plot(path, data_plot_freq, data_plot_duracao_carga,
     maxData1X = max(data_plot_freq)
     tamanho_barra = 1.1 * (maxData1X - minData1X) / (num_pontos)
 
-    ax.bar(data_plot_freq,
-           data_plot_duracao_carga,
-           tamanho_barra,
-           bottom=data_plot_carga_inicial)
+    config_plot = dict(width=tamanho_barra, bottom=data_plot_carga_inicial)
+    ax.bar(data_plot_freq, data_plot_duracao_carga, **config_plot)
+
+    # saving file to load in another python file
+    # https://stackoverflow.com/questions/48912527/how-to-join-two-matplotlib-figures
+    np.savez(path + nomde_grafico + '.npz',
+             method='bar',
+             args=(data_plot_freq, data_plot_duracao_carga),
+             kwargs=config_plot)
 
     pyplot.xlim(minData1X, maxData1X)
     pyplot.ylim(0, )
