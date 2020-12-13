@@ -48,6 +48,7 @@ def cria_pasta_plots(pontos):
 def ler_dados(pontos):
     data = []
     for i in pontos:
+        print("..\\ponto %s\\force.txt\n" % (i))
         data.append(
             pandas.read_csv("..\\ponto %s\\force.txt" % (i),
                             header=None).to_numpy())
@@ -141,15 +142,19 @@ def gera_plot(path, data_plot_freq, data_plot_duracao_carga,
     # figura deve ser definida como subplots e retornas os axes para posterior configuracao do tick format
     fig, ax = pyplot.subplots(1, 1, figsize=(10, 10))
 
-    num_pontos = len(pontos)
+    freq_unica = set(data_plot_freq)
+    num_pontos = len(freq_unica)
     minData1X = min(data_plot_freq)
     maxData1X = max(data_plot_freq)
-    tamanho_barra = (maxData1X - minData1X) / (num_pontos - 1)
+    tamanho_barra = 1.1 * (maxData1X - minData1X) / (num_pontos)
 
     ax.bar(data_plot_freq,
            data_plot_duracao_carga,
            tamanho_barra,
            bottom=data_plot_carga_inicial)
+
+    pyplot.xlim(minData1X, maxData1X)
+    pyplot.ylim(0, )
     #ax.xaxis.set_major_formatter(pyplot.FuncFormatter('{:.2f}'.format))
     #ax.yaxis.set_major_formatter(pyplot.FuncFormatter('{:.2f}'.format))
     pyplot.savefig(path + nomde_grafico + '.png', dpi=300, bbox_inches='tight')
