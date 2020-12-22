@@ -5,6 +5,12 @@ def nome_hash(cont_hash):
     return (_hash.hexdigest())
 
 
+def lerKuttaDat():
+    arquivo = open("Kutta.dat", "r")
+    arq_lines = arquivo.readlines()
+    return str(arq_lines)
+
+
 # %%
 if __name__ == "__main__":
     import os

@@ -63,7 +63,8 @@ def juntar_plots(ax, files):
 def gera_plot(path, data, ler, shape, total_variaveis):
 
     import hashName
-    pasta_hash: str = hashName.nome_hash(os.getcwd() + "\\" + path)
+    pasta_hash: str = hashName.nome_hash(os.getcwd() + "\\" + path +
+                                         hashName.lerKuttaDat())
 
     for variavel in range(1, int(total_variaveis + 1)):
 
