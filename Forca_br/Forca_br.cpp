@@ -178,15 +178,115 @@ void main( void )
 	int cx = 0; // numero de caracteres gravados no buffe temporario
 
 
-	fd=fopen("force.txt","w");
-	fd_log = fopen("force_log.txt", "w");
+	int modo_leitura;
+	printf("\n Escolha o modo de leitura do arquivo Forca.dat :\n\n");
+	printf("\t [1]:leitura direta do arquivo Forca.dat\n");
+	printf("\t [2]:leitura do Forca.dat e definicao das condicoes inicias dada pela leitura do arquivo init_force.txt\n\n");
+	printf("-------------------------------------------------------------\n");
+	printf(" Escolha uma opcao : ");
+	scanf("%d", &modo_leitura);
+
 
 	NewData( );
 	printf("\n\nSai de New data\n");
-	printf("Calculando forca bruta \n");
+
+	if (modo_leitura == 2)
+	{
+		int linha_force;
+		printf("\n\n Entre com o valor da linha a ser lida no arquivo init_force.txt : ");
+		scanf("%d", &linha_force);
+
+		FILE *fd_force;
+		char str[256];
+		int linha_countador = 0;
+		double lixo;
+		int lixo_d;
+
+		fd_force = fopen("init_force.txt", "r");
+		if (fd_force == NULL)
+		{
+			printf("\n Nao foi possivel abrir arquivo de saida!\n");
+			exit(0);
+		}
+		// testa se chegou no fim do arquivo
+		while (!feof(fd_force))
+		{
+			linha_countador++;
+			if (linha_countador != linha_force) // não chegou na linha desejada
+			{
+				while (getc(fd_force) != 10)
+					// le todos os caracteres ate encontrar um salto de linha "\n"
+					// que na tabela ASCII tem valor 10
+				{
+
+				}
+			}
+			else {
+				fscanf(fd_force, "%lf ,", &lixo);
+				fscanf(fd_force, "%lf ,", &Wf);
+				for (int id_eq = 0; id_eq < Nequ; id_eq = id_eq + 2)
+					fscanf(fd_force, "%lf , %lf , %lf , %lf ,", &xo[id_eq], &xo[id_eq + 1], &lixo, &lixo);
+				fscanf(fd_force, "%d \n", &lixo_d);
+				break;
+			}
+
+		}
+		fclose(fd_force);
+	}
+
+	// imprime dados finais que serao utilizados para o processamento do Forca_Bruta
+	printf("\n\n Numero de equacoes do sistema =  %d \n", Nequ);
+	for (int id_eq = 0; id_eq < Nequ; id_eq++)
+	{
+		printf(" Xo[%3d] = %25.20lf \n", id_eq, xo[id_eq]);
+	}
+	printf(" alpha_min      = %25.6lf \n", alphamin);
+	printf(" alpha_max      = %25.6lf \n", alphamax);
+	printf(" Num_pontos     = %d \n", K);
+	printf(" Max_periodos   = %d \n Max_verificacao   = %d \n", Nt, Nss);
+	printf(" Param_controle = %d \n", Param_freq);
+	printf(" Wf             = %25.20lf \n", Wf);
+	printf(" eta_1   = %25.20lf \n eta_2   = %25.20lf \n", eta__1, eta__2);
+	printf(" PL_8C   = %25.20lf \n PL_8S   = %25.20lf \n PL_9C   = %25.20lf \n PL_9S   = %25.20lf \n",
+		PL_8C, PL_8S, PL_9C, PL_9S);
+	printf(" PL      = %25.20lf \n", PL);
+
+	printf("\n\n PRESSIONE PARA SALVAR Forca.dat E INICIAR O FORCA_BRUTA.....\n");
+	system("pause");
+
+	//salva Forca.dat
+	if (1) //sempre verdadeiro, fiz isso para declarar variaveis dentro deste escopo
+	{
+		FILE *fd_kutta;
+
+		fd_kutta = fopen("Forca.dat", "w");
+		if (fd_kutta == NULL)
+		{
+			printf("\n Nao foi possivel abrir arquivo de saida!\n");
+			exit(0);
+		}
+
+		int id_eq;
+		for (id_eq = 0; id_eq < (Nequ - 1); id_eq++)
+			fprintf(fd_kutta, "\t %25.20lf", xo[id_eq]);
+		fprintf(fd_kutta, "\t %25.20lf \n", xo[id_eq++]);
+		fprintf(fd_kutta, "\t %lf \t %lf \n", alphamin, alphamax);
+		fprintf(fd_kutta, "\t %d \n", K);
+		fprintf(fd_kutta, "\t %d \t %d \n", Nt, Nss);
+		fprintf(fd_kutta, "\t %d \t %lf \n", Param_freq, Wf);
+		fprintf(fd_kutta, "\t %lf \t %lf ", eta__1, eta__2);
+		fprintf(fd_kutta, "\t %lf \t %lf \t %lf \t %lf \t %lf \n",
+			PL_8C, PL_8S, PL_9C, PL_9S, PL);
+		fclose(fd_kutta);
+	}
+
+	printf("\n\n Calculando forca bruta \n\n");
 
 	for(i=0;i<Nequ;i++)
 		x[i]=xo[i];
+
+	fd = fopen("force.txt", "w");
+	fd_log = fopen("force_log.txt", "w");
 		
 	for(k=1;k<=K;k++)
 	{
