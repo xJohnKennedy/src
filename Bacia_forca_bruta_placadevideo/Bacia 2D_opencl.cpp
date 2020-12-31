@@ -48,6 +48,7 @@ int Num_cel,Cor1,Cor2;
 double *q1,*q1p,*q2,*q2p;
 int numMaxPeriodos;
 double criterioConvergencia = 1.0e-5;
+double x_init[Nequ];
 
 //variavel para controle de criacao de arquivos de log somente na primeira chamanda do RK
 bool LimparArquivosLog = true;
@@ -462,6 +463,51 @@ void NewData(void)
 	fscanf(fdread, "%d", &numGroupThreadsFinalPasso);
 	fclose(fdread);
 
+	int modoLeituraArquivo = 0;
+	// leitura das condicoes iniciais em arquivo
+	printf("\n Escolha o modo de leitura das condicoes iniciais:\n\n");
+	printf("\t [1]:condicao inicial dada pelo user\n");
+	printf("\t [2]:leitura direta do arquivo bacia_xinit.dat\n");
+	printf("-------------------------------------------------------------\n");
+	printf(" Escolha uma opcao : ");
+	scanf("%d", &modoLeituraArquivo);
+	printf("\n\n");
+
+	if (modoLeituraArquivo == 1)
+	{
+		double init_cond;
+		printf(" Digite valor da condicao inicial: ");
+		scanf("%lf", &init_cond);
+		for (int idx = 0; idx < Nequ; idx++)
+		{
+			x_init[idx] = init_cond;
+		}
+	} 
+	else if (modoLeituraArquivo == 2)
+	{
+		FILE    *fd_bacia_xinit;
+
+		fd_bacia_xinit = fopen("bacia_xinit.dat", "r");
+		if (fd_bacia_xinit == NULL) {
+			printf("\n Nao foi possivel abrir arquivo bacia_xinit.dat!\n");
+			exit(0);
+			return;
+		}
+
+		double valorLido = 0;
+		for (int idx = 0; idx < Nequ; idx++)
+		{
+			fscanf(fdread, "%lf", &valorLido);
+			x_init[idx] = valorLido;
+		}
+	}
+	else
+	{
+		printf("\n Nao foi escolida uma alternativa valida\n");
+		exit(0);
+		return;
+	}
+
 	return;
 }
 
@@ -499,7 +545,7 @@ void inicializaVariaveisdeEntrada(int const total_celulas, int const cell_inicio
 		// inicializa todas as variaveis 
 		for (int idx = 0; idx < Nequ; idx++)
 		{
-			x[idx*Num_cel + i] = 1e-4;
+			x[idx*Num_cel + i] = x_init[idx];
 		}
 
 		/* Coordenada de cada celula */
