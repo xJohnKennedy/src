@@ -99,7 +99,8 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
             pontosProximos = tree.query_ball_point(
                 listaAtratores[id_periodico], 0.01)
             # imprime na tela o atrator que está sob analise
-            print("==> Atrator encontrado[] d1 = {:f}, d2 = {:f}\n".format(
+            print("==> Atrator encontrado[{:d}] d1 = {:f}, d2 = {:f}\n".format(
+                listaIndices[id_periodico] + 1,
                 listaAtratores[id_periodico][0],
                 listaAtratores[id_periodico][1]))
         else:
@@ -111,7 +112,15 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
         listaPontosExcluir = []
         indice = 0
         for i in pontosProximos:
-            norma = 2**nivel
+            if flag_convergiu == True and nivel > 0:
+                norma = 64 - (6 - nivel) * 10
+            elif flag_convergiu == True and nivel == 0:
+                raise ValueError(
+                    'A quantidade de atratores eh igual ao maximo de cores do Cmpa,' \
+                    + 'nao sendo possivel representar os pontos que nao convergiram!'
+                )
+            else:
+                norma = 0
             indiceBuscarData = listaIndices[i]
             numCelula = data[indiceBuscarData][0]
             if numCelula < 0 and flag_convergiu == True:
@@ -122,6 +131,7 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
             y_l = int((numCelula - 1) % n_div_y)
             z0[y_l, x_l] = norma
             indice += 1
+        print("==> Nivel = {:f}\n".format(norma))
 
         #deleta os pontos proximos encontrados mas que nao convergiram da lista de pontos proximos
         pontosProximos = np.delete(pontosProximos, listaPontosExcluir, 0)
@@ -134,11 +144,11 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
     from matplotlib.ticker import MaxNLocator
     from matplotlib.colors import ListedColormap
 
-    levels = MaxNLocator(nbins=15).tick_values(0, 64)
+    lista_cores = ["white", "blue", "yellow", "green", "red", "gray", "black"]
 
-    cmap = ListedColormap(
-        ["white", "blue", "yellow", "green", "red", "gray", "black"])
-    norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
+    cmap = ListedColormap(lista_cores)
+    levels = MaxNLocator(nbins=len(lista_cores)).tick_values(0, 64)
+    norm = BoundaryNorm(levels, ncolors=cmap.N, clip=False)
 
     # matplotlib plot
     # figura deve ser definida como subplots e retornas os axes para posterior configuracao do tick format
@@ -177,6 +187,7 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
                             useOffset=False)
     #ax.xaxis.set_major_formatter(pyplot.FuncFormatter('{:.2f}'.format))
     #ax.yaxis.set_major_formatter(pyplot.FuncFormatter('{:.2f}'.format))
+    #pyplot.colorbar(im, ax=ax)
     pyplot.savefig(path + nomde_grafico + '.png', dpi=300, bbox_inches='tight')
     #pyplot.show()
     pyplot.cla()
