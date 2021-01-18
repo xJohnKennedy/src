@@ -57,6 +57,11 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
     import hashName
     pasta_hash: str = hashName.nome_hash(os.getcwd() + "\\" + path)
 
+    #lista de cores
+    lista_cores = [
+        "white", "blue", "yellow", "green", "red", "purple", "black"
+    ]
+
     # calculo de dx e dy
     dx = abs((x2 - x1) / (n_div_x - 1))
     dy = abs((y2 - y1) / (n_div_y - 1))
@@ -79,6 +84,7 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
 
     ## variavel de controle do nível de plotagem de cada atrator
     nivel = 6
+    ArquivoAberto = False
 
     #verifica se a lista de atratores nao esta vazia
     while listaAtratores.size != 0:
@@ -110,6 +116,7 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
 
         #definida a lista de pontos proximos determina para ela um nivel de plotagem em base de 2
         listaPontosExcluir = []
+        listaIndicesConvergidosImprimir = []
         indice = 0
         for i in pontosProximos:
             if flag_convergiu == True and nivel > 0:
@@ -125,13 +132,34 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
             numCelula = data[indiceBuscarData][0]
             if numCelula < 0 and flag_convergiu == True:
                 listaPontosExcluir.append(indice)
+            else:
+                listaIndicesConvergidosImprimir.append(indiceBuscarData + 1)
             # define linha em x
             numCelula = abs(numCelula)
             x_l = int((numCelula - 1) / n_div_y)
             y_l = int((numCelula - 1) % n_div_y)
             z0[y_l, x_l] = norma
             indice += 1
-        print("==> Nivel = {:f}\n".format(norma))
+        if flag_convergiu == True:
+            print("==> Nivel = {:f}\n".format(norma))
+            if ArquivoAberto == False:
+                f = open(path + 'impBaciaLog_' + pasta_hash[0:12] + '.txt',
+                         "w")
+                ArquivoAberto = True
+            else:
+                f = open(path + 'impBaciaLog_' + pasta_hash[0:12] + '.txt',
+                         "a")
+            f.write("Atrator encontrado[{:d}] d1 = {:f}, d2 = {:f}\n".format(
+                listaIndices[id_periodico] + 1,
+                listaAtratores[id_periodico][0],
+                listaAtratores[id_periodico][1]))
+            f.write("Nivel de cor = {:d}, Nome da cor = {:s}\n".format(
+                norma, lista_cores[nivel]))
+            f.write("Numero de pontos = {:d}\n".format(
+                len(listaIndicesConvergidosImprimir)))
+            np.savetxt(f, listaIndicesConvergidosImprimir, fmt='%.0f')
+            f.write("\n\n")
+            f.close()
 
         #deleta os pontos proximos encontrados mas que nao convergiram da lista de pontos proximos
         pontosProximos = np.delete(pontosProximos, listaPontosExcluir, 0)
@@ -143,8 +171,6 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
     from matplotlib.colors import BoundaryNorm
     from matplotlib.ticker import MaxNLocator
     from matplotlib.colors import ListedColormap
-
-    lista_cores = ["white", "blue", "yellow", "green", "red", "gray", "black"]
 
     cmap = ListedColormap(lista_cores)
     levels = MaxNLocator(nbins=len(lista_cores)).tick_values(0, 64)
