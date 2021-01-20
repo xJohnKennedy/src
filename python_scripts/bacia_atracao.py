@@ -136,7 +136,7 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
                 norma = 64 - (6 - nivel) * 10
             elif flag_convergiu == True and nivel == 0:
                 raise ValueError(
-                    'A quantidade de atratores eh igual ao maximo de cores do Cmpa,' \
+                    'A quantidade de atratores eh igual ao maximo de cores do Cmap,' \
                     + 'nao sendo possivel representar os pontos que nao convergiram!'
                 )
             else:
