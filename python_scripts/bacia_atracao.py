@@ -61,6 +61,19 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
     lista_cores = [
         "white", "blue", "yellow", "green", "red", "purple", "black"
     ]
+    lista_cores_indices = [0, 1, 2, 3, 4, 5, 6]
+
+    print(lista_cores, lista_cores_indices)
+    user_input = str(
+        input(
+            "\n Mudar indices da lista de cores?: \n ex= Digitar 0,1,2,3,5,4,6 troca o purple e o red \n Nova lista?: "
+        ))
+    if user_input != '':
+        nova_lista_cores = []
+        user_input = user_input.split(",")
+        for temp in user_input:
+            nova_lista_cores.append(lista_cores[int(temp)])
+        lista_cores = nova_lista_cores
 
     # calculo de dx e dy
     dx = abs((x2 - x1) / (n_div_x - 1))
