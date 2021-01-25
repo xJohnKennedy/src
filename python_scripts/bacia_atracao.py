@@ -52,8 +52,8 @@ def ler_dados():
 
 # %%
 # funcao gera e imprime grafico
-def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
-              n_div_x: int, n_div_y: int):
+def gera_plot(path, data, total_linhas, total_colunas, correcao_frequencia, x1,
+              x2, y1, y2, n_div_x: int, n_div_y: int):
     import hashName
     pasta_hash: str = hashName.nome_hash(os.getcwd() + "\\" + path)
 
@@ -115,8 +115,8 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
         if flag_convergiu == True:
             #https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.KDTree.query_ball_point.html#scipy.spatial.KDTree.query_ball_point
             tree = spatial.KDTree(listaAtratores)
-            pontosProximos = tree.query_ball_point(
-                listaAtratores[id_periodico], 0.01)
+            pontosProximos = sorted(
+                tree.query_ball_point(listaAtratores[id_periodico], 0.01))
             # imprime na tela o atrator que está sob analise
             print("==> Atrator encontrado[{:d}] d1 = {:f}, d2 = {:f}\n".format(
                 listaIndices[id_periodico] + 1,
@@ -126,6 +126,29 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
             pontosProximos = np.zeros(listaIndices.size, dtype='int32')
             for i in range(listaIndices.size):
                 pontosProximos[i] = i
+
+        if flag_convergiu == True:
+            for j in range(total_colunas - 6):
+                sys.stdout.flush()
+                print("verificando dados coluna {:d} para o atrator".format(
+                    int(j + 6)),
+                      end="\r")
+                listaAtratoresVerificacao = np.zeros((len(pontosProximos), 1))
+                for i in range(len(pontosProximos)):
+                    linhaLerData = listaIndices[pontosProximos[i]]
+                    listaAtratoresVerificacao[i] = np.array(
+                        data[linhaLerData][5 + j])
+                    pass
+                #https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.KDTree.query_ball_point.html#scipy.spatial.KDTree.query_ball_point
+                tree = spatial.KDTree(listaAtratoresVerificacao)
+                pontosProximosVerificacao = sorted(
+                    tree.query_ball_point(listaAtratoresVerificacao[0], 0.01))
+                #extrai de pontos proximos somente aqueles que passaram na verificacao
+                pontosProximos = sorted(
+                    np.take(pontosProximos, pontosProximosVerificacao))
+                pass
+            sys.stdout.flush()
+            pass
 
         #definida a lista de pontos proximos determina para ela um nivel de plotagem em base de 2
         listaPontosExcluir = []
@@ -296,8 +319,9 @@ def main_func():
     if (correcao_frequencia == None):
         correcao_frequencia = 1.0
     total_linhas = shape[0]
-    gera_plot(path, data[0], total_linhas, correcao_frequencia, x1, x2, y1, y2,
-              numDiv_dx, numDiv_dy)
+    total_colunas = shape[1]
+    gera_plot(path, data[0], total_linhas, total_colunas, correcao_frequencia,
+              x1, x2, y1, y2, numDiv_dx, numDiv_dy)
 
 
 # %%
