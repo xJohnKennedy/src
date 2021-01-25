@@ -56,7 +56,8 @@ def ler_dados(pontos):
 
 # %%
 # funcao gera e imprime grafico
-def gera_plot(path, data, total_variaveis, correcao_frequencia, pontos):
+def gera_plot(path, data, total_variaveis, correcao_frequencia, pontos,
+              eixo_carga):
     import hashName
     pasta_hash: str = hashName.nome_hash(os.getcwd() + "\\" + path)
     for variavel in range(1, int(total_variaveis + 1)):
@@ -109,7 +110,12 @@ def gera_plot(path, data, total_variaveis, correcao_frequencia, pontos):
         pyplot.ylim(minData1Y - 0.01 * abs(minData1Y),
                     maxData1Y + 0.01 * abs(maxData1Y))
         pyplot.ylabel(r'$W_{' + str(variavel) + '}/h$')
-        pyplot.xlabel(r'$\omega_{1}/\omega_{0}$')
+        if eixo_carga == True:
+            pyplot.xlabel(r'$P_{L}$')
+            pass
+        else:
+            pyplot.xlabel(r'$\omega_{1}/\omega_{0}$')
+            pass
         pyplot.ticklabel_format(axis='both',
                                 style='sci',
                                 scilimits=(0, 0),
@@ -127,6 +133,14 @@ def gera_plot(path, data, total_variaveis, correcao_frequencia, pontos):
 
 # %%
 if __name__ == "__main__":
+    eixo_carga = False
+    v_eixo_carga = str(input("Plotar eixo [1=freq, 2=PL]: "))
+    if v_eixo_carga == '' or v_eixo_carga == 1:
+        pass
+    elif v_eixo_carga == '2':
+        eixo_carga = True
+        pass
+
     pontos = str(input("Caminhos para plotar <caminho 1,caminho 2>: "))
     pontos = pontos.split(",")
     path = cria_pasta_plots(pontos)
@@ -137,4 +151,5 @@ if __name__ == "__main__":
     if (correcao_frequencia == None):
         correcao_frequencia = 1.0
     total_variaveis = (shape[1] - 4) / 4
-    gera_plot(path, data, total_variaveis, correcao_frequencia, pontos)
+    gera_plot(path, data, total_variaveis, correcao_frequencia, pontos,
+              eixo_carga)
