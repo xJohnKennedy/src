@@ -130,7 +130,7 @@ CS_CONSTANT_BUFFER ConstantBuffer;
 int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 	std::vector<ID3D11ComputeShader*> vetorPonteiroComputeShader,
 	std::vector<ID3D11ComputeShader*> vP_CS_AtualizacaoRK);
-void NewData(void);
+void NewData(int argc, char** argv);
 void CellsTrajec(void);
 void CellsTrajec_core(int const nome_thread, int const cell_inicio, int const cell_fim);
 
@@ -386,7 +386,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 }
 
 /* ===========================  NewData  ===========================*/
-void NewData(void)
+void NewData(int argc, char** argv)
 {
 	FILE    *fdread;
 	long int i;
@@ -464,20 +464,36 @@ void NewData(void)
 	fclose(fdread);
 
 	int modoLeituraArquivo = 0;
-	// leitura das condicoes iniciais em arquivo
-	printf("\n Escolha o modo de leitura das condicoes iniciais:\n\n");
-	printf("\t [1]:condicao inicial dada pelo user\n");
-	printf("\t [2]:leitura direta do arquivo bacia_xinit.dat\n");
-	printf("-------------------------------------------------------------\n");
-	printf(" Escolha uma opcao : ");
-	scanf("%d", &modoLeituraArquivo);
-	printf("\n\n");
+	if (argc == 1)
+	{
+		// leitura das condicoes iniciais em arquivo
+		printf("\n Escolha o modo de leitura das condicoes iniciais:\n\n");
+		printf("\t [1]:condicao inicial dada pelo user\n");
+		printf("\t [2]:leitura direta do arquivo bacia_xinit.dat\n");
+		printf("-------------------------------------------------------------\n");
+		printf(" Escolha uma opcao : ");
+		scanf("%d", &modoLeituraArquivo);
+		printf("\n\n");
+	}
+	else
+	{
+		//extrai de argv o argumento do modo de leitura das condicoes inicias
+		sscanf(argv[1], "%d", &modoLeituraArquivo);
+	}
 
 	if (modoLeituraArquivo == 1)
 	{
 		double init_cond;
 		printf(" Digite valor da condicao inicial: ");
-		scanf("%lf", &init_cond);
+		if (argc > 2)
+		{ 
+			sscanf(argv[2], "%lf", &init_cond);
+		}
+		else
+		{
+			scanf("%lf", &init_cond);
+		}
+		
 		for (int idx = 0; idx < Nequ; idx++)
 		{
 			x_init[idx] = init_cond;
@@ -925,16 +941,18 @@ void CellsTrajec(void)
 
 
 /* ===========================  main  ===========================*/
-void main(void)
+int main(int argc, char** argv)
 {
 
   printf("==============Calculo de Bacias de Atracao============\n");
   printf("=================Metodo  da Forca Bruta===============\n");
   printf("===============Execucao Distribuida em GPU============\n\n\n");
-  NewData();
+  NewData(argc, argv);
 
   //printf("entrei em Cells\n");
   CellsTrajec();
+
+  return 0;
  
 }
 
