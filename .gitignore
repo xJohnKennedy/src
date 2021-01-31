@@ -3,7 +3,6 @@
 /python_scripts/plots/**
 /python_scripts/__pycache__/**
 /python_scripts/plots_bacia_atracao/**
-/python_scripts/*.json
 /python_scripts/*.npz
 /python_scripts/*.svg
 /python_scripts/*.png

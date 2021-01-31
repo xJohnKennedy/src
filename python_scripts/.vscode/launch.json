@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "cwd": "D:\\D_Mestrado - Jonathas\\RESULTADOS NAO LINEARES\\RESULTADO 2\\modelo_3_1\\_bin\\plots"
+            "cwd": "D:\\D_Mestrado - Jonathas\\RESULTADOS NAO LINEARES\\RESULTADO 2\\modelocompleto_teste\\_bin\\basins_of_attraction"
         }
     ]
 }

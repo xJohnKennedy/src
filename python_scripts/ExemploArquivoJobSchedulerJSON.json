@@ -1,0 +1,11 @@
+{
+    "nameJobs": [
+        "job1"
+    ],
+    "job1": {
+        "_desc_": "novo trabalho para executar",
+        "cwd": "D:\\D_Mestrado - Jonathas\\RESULTADOS NAO LINEARES\\RESULTADO 2\\modelocompleto_teste\\_bin\\basins_of_attraction\\bao 0.96 - gpu 256x256 - P=5000 - zoom1 - W1 x dW1dt",
+        "bat": "GPU_Bacia_forca_bruta.bat",
+        "args": "2"
+    }
+}
