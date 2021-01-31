@@ -32,11 +32,10 @@ pyplot.rcParams['agg.path.chunksize'] = 10000
 
 # %%
 # pasta onde armazena os plots
-def cria_pasta_plots(pontos):
+def cria_pasta_plots(palavraPath):
 
     path = "bifurcacao"
-    for i in pontos:
-        path = path + "_c%s" % (i)
+    path = path + palavraPath
     path = path + "\\"
     if not os.path.exists(path):
         os.makedirs(path)
@@ -141,9 +140,10 @@ if __name__ == "__main__":
         eixo_carga = True
         pass
 
+    import stringParserPoints
     pontos = str(input("Caminhos para plotar <caminho 1,caminho 2>: "))
-    pontos = pontos.split(",")
-    path = cria_pasta_plots(pontos)
+    pontos, palavraPath = stringParserPoints.SeparaString(pontos)
+    path = cria_pasta_plots(palavraPath)
     data = ler_dados(pontos)
     shape = data[0].shape
     # correcao de frequencia

@@ -52,10 +52,28 @@ def ler_dados():
 
 # %%
 # funcao gera e imprime grafico
-def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
-              n_div_x: int, n_div_y: int):
+def gera_plot(path, data, total_linhas, total_colunas, correcao_frequencia, x1,
+              x2, y1, y2, n_div_x: int, n_div_y: int):
     import hashName
     pasta_hash: str = hashName.nome_hash(os.getcwd() + "\\" + path)
+
+    #lista de cores
+    lista_cores = [
+        "white", "blue", "yellow", "green", "red", "purple", "black"
+    ]
+    lista_cores_indices = [0, 1, 2, 3, 4, 5, 6]
+
+    print(lista_cores, lista_cores_indices)
+    user_input = str(
+        input(
+            "\n Mudar indices da lista de cores?: \n ex= Digitar 0,1,2,3,5,4,6 troca o purple e o red \n Nova lista?: "
+        ))
+    if user_input != '':
+        nova_lista_cores = []
+        user_input = user_input.split(",")
+        for temp in user_input:
+            nova_lista_cores.append(lista_cores[int(temp)])
+        lista_cores = nova_lista_cores
 
     # calculo de dx e dy
     dx = abs((x2 - x1) / (n_div_x - 1))
@@ -79,6 +97,7 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
 
     ## variavel de controle do nível de plotagem de cada atrator
     nivel = 6
+    ArquivoAberto = False
 
     #verifica se a lista de atratores nao esta vazia
     while listaAtratores.size != 0:
@@ -96,10 +115,11 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
         if flag_convergiu == True:
             #https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.KDTree.query_ball_point.html#scipy.spatial.KDTree.query_ball_point
             tree = spatial.KDTree(listaAtratores)
-            pontosProximos = tree.query_ball_point(
-                listaAtratores[id_periodico], 0.01)
+            pontosProximos = sorted(
+                tree.query_ball_point(listaAtratores[id_periodico], 0.01))
             # imprime na tela o atrator que está sob analise
-            print("==> Atrator encontrado[] d1 = {:f}, d2 = {:f}\n".format(
+            print("==> Atrator encontrado[{:d}] d1 = {:f}, d2 = {:f}\n".format(
+                listaIndices[id_periodico] + 1,
                 listaAtratores[id_periodico][0],
                 listaAtratores[id_periodico][1]))
         else:
@@ -107,21 +127,75 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
             for i in range(listaIndices.size):
                 pontosProximos[i] = i
 
+        if flag_convergiu == True:
+            for j in range(total_colunas - 6):
+                sys.stdout.flush()
+                print("verificando dados coluna {:d} para o atrator".format(
+                    int(j + 6)),
+                      end="\r")
+                listaAtratoresVerificacao = np.zeros((len(pontosProximos), 1))
+                for i in range(len(pontosProximos)):
+                    linhaLerData = listaIndices[pontosProximos[i]]
+                    listaAtratoresVerificacao[i] = np.array(
+                        data[linhaLerData][5 + j])
+                    pass
+                #https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.KDTree.query_ball_point.html#scipy.spatial.KDTree.query_ball_point
+                tree = spatial.KDTree(listaAtratoresVerificacao)
+                pontosProximosVerificacao = sorted(
+                    tree.query_ball_point(listaAtratoresVerificacao[0], 0.01))
+                #extrai de pontos proximos somente aqueles que passaram na verificacao
+                pontosProximos = sorted(
+                    np.take(pontosProximos, pontosProximosVerificacao))
+                pass
+            sys.stdout.flush()
+            pass
+
         #definida a lista de pontos proximos determina para ela um nivel de plotagem em base de 2
         listaPontosExcluir = []
+        listaIndicesConvergidosImprimir = []
         indice = 0
         for i in pontosProximos:
-            norma = 2**nivel
+            if flag_convergiu == True and nivel > 0:
+                norma = 64 - (6 - nivel) * 10
+            elif flag_convergiu == True and nivel == 0:
+                raise ValueError(
+                    'A quantidade de atratores eh igual ao maximo de cores do Cmap,' \
+                    + 'nao sendo possivel representar os pontos que nao convergiram!'
+                )
+            else:
+                norma = 0
             indiceBuscarData = listaIndices[i]
             numCelula = data[indiceBuscarData][0]
             if numCelula < 0 and flag_convergiu == True:
                 listaPontosExcluir.append(indice)
+            else:
+                listaIndicesConvergidosImprimir.append(indiceBuscarData + 1)
             # define linha em x
             numCelula = abs(numCelula)
             x_l = int((numCelula - 1) / n_div_y)
             y_l = int((numCelula - 1) % n_div_y)
             z0[y_l, x_l] = norma
             indice += 1
+        if flag_convergiu == True:
+            print("==> Nivel = {:f}\n".format(norma))
+            if ArquivoAberto == False:
+                f = open(path + 'impBaciaLog_' + pasta_hash[0:12] + '.txt',
+                         "w")
+                ArquivoAberto = True
+            else:
+                f = open(path + 'impBaciaLog_' + pasta_hash[0:12] + '.txt',
+                         "a")
+            f.write("Atrator encontrado[{:d}] d1 = {:f}, d2 = {:f}\n".format(
+                listaIndices[id_periodico] + 1,
+                listaAtratores[id_periodico][0],
+                listaAtratores[id_periodico][1]))
+            f.write("Nivel de cor = {:d}, Nome da cor = {:s}\n".format(
+                norma, lista_cores[nivel]))
+            f.write("Numero de pontos = {:d}\n".format(
+                len(listaIndicesConvergidosImprimir)))
+            np.savetxt(f, listaIndicesConvergidosImprimir, fmt='%.0f')
+            f.write("\n\n")
+            f.close()
 
         #deleta os pontos proximos encontrados mas que nao convergiram da lista de pontos proximos
         pontosProximos = np.delete(pontosProximos, listaPontosExcluir, 0)
@@ -134,11 +208,9 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
     from matplotlib.ticker import MaxNLocator
     from matplotlib.colors import ListedColormap
 
-    levels = MaxNLocator(nbins=15).tick_values(0, 64)
-
-    cmap = ListedColormap(
-        ["white", "blue", "yellow", "green", "red", "gray", "black"])
-    norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
+    cmap = ListedColormap(lista_cores)
+    levels = MaxNLocator(nbins=len(lista_cores)).tick_values(0, 64)
+    norm = BoundaryNorm(levels, ncolors=cmap.N, clip=False)
 
     # matplotlib plot
     # figura deve ser definida como subplots e retornas os axes para posterior configuracao do tick format
@@ -177,6 +249,7 @@ def gera_plot(path, data, total_linhas, correcao_frequencia, x1, x2, y1, y2,
                             useOffset=False)
     #ax.xaxis.set_major_formatter(pyplot.FuncFormatter('{:.2f}'.format))
     #ax.yaxis.set_major_formatter(pyplot.FuncFormatter('{:.2f}'.format))
+    #pyplot.colorbar(im, ax=ax)
     pyplot.savefig(path + nomde_grafico + '.png', dpi=300, bbox_inches='tight')
     #pyplot.show()
     pyplot.cla()
@@ -246,8 +319,9 @@ def main_func():
     if (correcao_frequencia == None):
         correcao_frequencia = 1.0
     total_linhas = shape[0]
-    gera_plot(path, data[0], total_linhas, correcao_frequencia, x1, x2, y1, y2,
-              numDiv_dx, numDiv_dy)
+    total_colunas = shape[1]
+    gera_plot(path, data[0], total_linhas, total_colunas, correcao_frequencia,
+              x1, x2, y1, y2, numDiv_dx, numDiv_dy)
 
 
 # %%
