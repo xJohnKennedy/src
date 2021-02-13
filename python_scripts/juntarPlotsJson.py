@@ -100,10 +100,23 @@ def gera_plot(files, data_plots):
         kwargs = comandos["kwargs"]
         ax.axvline(x=comandos["local_x"], **kwargs)
 
-    pyplot.xlim(0.8, 1.2)
-    """pyplot.ylim(
-        min(data_1__y) - 0.1 * abs(min(data_1__y)),
-        max(data_1__y) + 0.1 * abs(max(data_1__y))) """
+    # limite dos plots
+    try:
+        lista = ["lim_x_menor", "lim_x_maior", "lim_y_menor", "lim_y_maior"]
+        limites = []
+        comandos = data_plots["LimitePlots"]
+        for i in lista:
+            cm = comandos.pop(i, None)
+            if cm != None and cm != "":
+                limites.append(float(cm))
+            else:
+                limites.append(None)
+                pass
+        pyplot.xlim(limites[0], limites[1])
+        pyplot.ylim(limites[2], limites[3])
+    except:
+        pass
+
     pyplot.ylabel(data_plots["nomeEixoY"])
     pyplot.xlabel(data_plots["nomeEixoX"])
     #pyplot.ticklabel_format(axis='both', style='sci', scilimits=(0, 0))
@@ -116,8 +129,11 @@ def gera_plot(files, data_plots):
 
 
 def main_func(ler=None):
-    user_input = str(input("\nNome do arquivo (JSON):  "))
-    arquivo_json = lerJson(user_input)
+    user_input = str(input("\nNome do arquivo (juntarPlots.json):  "))
+    if user_input == '' or user_input == None:
+        user_input = 'juntarPlots'
+    user_input = user_input.split(".")
+    arquivo_json = lerJson(user_input[0])
     nome_arquivos = arquivo_json["nomePlots"]
     gera_plot(nome_arquivos, arquivo_json)
 

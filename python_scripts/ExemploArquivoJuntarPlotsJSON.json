@@ -1,0 +1,28 @@
+{
+    "_desc_": "",
+    "nomeGrafico": "C1xdC3dt",
+    "nomeEixoY": "$\\dot{W}_{1,8}^{S}/h$",
+    "nomeEixoX": "$W_{1,8}^{C}/h$",
+    "nomePlots": [
+        "74d8cd857e7_C1xdC3dt_planoFase_",
+        "74d8cd857e7_C1xdC3dt_poincare_"
+    ],
+    "INSERIR_AQUI_NomeDoPlotComConfiguracaoAdicional": {
+        "color": "yellow"
+    },
+    "LinhaVertical": {
+        "plotar": false,
+        "local_x": 1.0,
+        "kwargs": {
+            "color": "black",
+            "linewidth": 3
+        }
+    },
+    "LimitePlots": {
+        "_desc_": "usar um campo vazio para descrever se nao quer impor limite",
+        "lim_x_menor": 1.0,
+        "lim_x_maior": 1.0,
+        "lim_y_menor": 1.0,
+        "lim_y_maior": 1.0
+    }
+}
