@@ -93,43 +93,52 @@ def main_func(ler=None):
 
     keyPass = True
     newWorker = False
+    listOfProcessIds = []
     while keyPass == True:
-        #muda de diretorio raiz
-        print("\n\n")
-        os.chdir(worker["cwd"])
-        print(os.getcwd())
-
-        if worker["mode"] == 0:
-            #executa na mesma janela
-            #executa .bat
-            try:
-                comandoBat = worker["bat"] + " " + worker["args"]
-            except:
-                comandoBat = worker["bat"]
-                pass
-            os.system(comandoBat)
-            newWorker = True
-            pass
-        elif worker["mode"] == 1:
-            #executa multiplos arquivos em janelas diferentes
-            listOfProcessIds = findProcessIdByName(worker["process"])
-            if len(listOfProcessIds) < user_max_proc:
+        if worker != None:
+            if worker["mode"] == 0:
+                #muda de diretorio raiz
+                print("\n\n")
+                os.chdir(worker["cwd"])
+                print(os.getcwd())
+                #executa na mesma janela
+                #executa .bat
                 try:
-                    comandoBat = "start " + worker["bat"] + " " + worker["args"]
+                    comandoBat = worker["bat"] + " " + worker["args"]
                 except:
-                    comandoBat = "start " + worker["bat"]
+                    comandoBat = worker["bat"]
                     pass
-                subprocess.Popen(["cmd", "/c", comandoBat])
+                os.system(comandoBat)
                 newWorker = True
                 pass
-            else:
-                time.sleep(60)
+            elif worker["mode"] == 1:
+                #muda de diretorio raiz
+                print("\n\n")
+                os.chdir(worker["cwd"])
+                print(os.getcwd())
+                #executa multiplos arquivos em janelas diferentes
+                listOfProcessIds = findProcessIdByName(worker["process"])
+                if len(listOfProcessIds) < (int(user_max_proc)):
+                    try:
+                        comandoBat = "start " + worker["bat"] + " " + worker[
+                            "args"]
+                    except:
+                        comandoBat = "start " + worker["bat"]
+                        pass
+                    subprocess.Popen(["cmd", "/c", comandoBat])
+                    newWorker = True
+                    time.sleep(10)
+                    pass
+                else:
+                    time.sleep(60)
+                    pass
                 pass
-            pass
 
         if newWorker == True:
             if status == "hasNoKeys":
-                keyPass = False
+                #keyPass = False
+                worker = None
+                time.sleep(60)
                 pass
             else:
                 os.chdir(parentFolder)
