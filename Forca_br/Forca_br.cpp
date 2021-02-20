@@ -164,7 +164,7 @@ void hora_atual()
 
 
 /*===========================  MAIN  ===========================*/
-void main( void )
+void main(int argc, char** argv)
 {
 	int k,i,j, ij, flag, periodo, retorno;
 	double alpha, derro;
@@ -178,14 +178,21 @@ void main( void )
 	int cx = 0; // numero de caracteres gravados no buffe temporario
 
 
-	int modo_leitura;
-	printf("\n Escolha o modo de leitura do arquivo Forca.dat :\n\n");
-	printf("\t [1]:leitura direta do arquivo Forca.dat\n");
-	printf("\t [2]:leitura do Forca.dat e definicao das condicoes inicias dada pela leitura do arquivo init_force.txt\n\n");
-	printf("-------------------------------------------------------------\n");
-	printf(" Escolha uma opcao : ");
-	scanf("%d", &modo_leitura);
-
+	int modo_leitura = 0;
+	if (argc == 1)
+	{
+		printf("\n Escolha o modo de leitura do arquivo Forca.dat :\n\n");
+		printf("\t [1]:leitura direta do arquivo Forca.dat\n");
+		printf("\t [2]:leitura do Forca.dat e definicao das condicoes inicias dada pela leitura do arquivo init_force.txt\n\n");
+		printf("-------------------------------------------------------------\n");
+		printf(" Escolha uma opcao : ");
+		scanf("%d", &modo_leitura);
+	}
+	else
+	{
+		//extrai de argv o argumento do modo de leitura das condicoes inicias
+		sscanf(argv[1], "%d", &modo_leitura);
+	}
 
 	NewData( );
 	printf("\n\nSai de New data\n");
@@ -194,7 +201,15 @@ void main( void )
 	{
 		int linha_force;
 		printf("\n\n Entre com o valor da linha a ser lida no arquivo init_force.txt : ");
-		scanf("%d", &linha_force);
+		if (argc > 2)
+		{
+			sscanf(argv[2], "%d", &linha_force);
+			printf("%d\n", linha_force);
+		}
+		else
+		{
+			scanf("%d", &linha_force);
+		}
 
 		FILE *fd_force;
 		char str[256];
@@ -251,8 +266,11 @@ void main( void )
 		PL_8C, PL_8S, PL_9C, PL_9S);
 	printf(" PL      = %25.20lf \n", PL);
 
-	printf("\n\n PRESSIONE PARA SALVAR Forca.dat E INICIAR O FORCA_BRUTA.....\n");
-	system("pause");
+	if (argc < 2)
+	{
+		printf("\n\n PRESSIONE PARA SALVAR Forca.dat E INICIAR O FORCA_BRUTA.....\n");
+		system("pause");
+	}
 
 	//salva Forca.dat
 	if (1) //sempre verdadeiro, fiz isso para declarar variaveis dentro deste escopo
