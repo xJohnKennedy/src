@@ -3,7 +3,11 @@
         "job1"
     ],
     "job1": {
-        "_desc_": "novo trabalho para executar",
+        "_desc_1": "novo trabalho para executar",
+        "_desc_2": "nome do processo que ira executar para monitoramento",
+        "process": "Bacia_forca_bruta_placadevideo",
+        "_desc_3": "modo execucao: 0 = mesma janela, 1 = nova janela",
+        "mode": 0,
         "cwd": "D:\\D_Mestrado - Jonathas\\RESULTADOS NAO LINEARES\\RESULTADO 2\\modelocompleto_teste\\_bin\\basins_of_attraction\\bao 0.96 - gpu 256x256 - P=5000 - zoom1 - W1 x dW1dt",
         "bat": "GPU_Bacia_forca_bruta.bat",
         "args": "2"
