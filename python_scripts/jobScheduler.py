@@ -112,13 +112,14 @@ def main_func(ler=None):
                 newWorker = True
                 pass
             elif worker["mode"] == 1:
-                #muda de diretorio raiz
-                print("\n\n")
-                os.chdir(worker["cwd"])
-                print(os.getcwd())
+
                 #executa multiplos arquivos em janelas diferentes
                 listOfProcessIds = findProcessIdByName(worker["process"])
                 if len(listOfProcessIds) < (int(user_max_proc)):
+                    #muda de diretorio raiz
+                    print("\n\n")
+                    os.chdir(worker["cwd"])
+                    print(os.getcwd())
                     try:
                         comandoBat = "start " + worker["bat"] + " " + worker[
                             "args"]
