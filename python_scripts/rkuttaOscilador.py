@@ -1,11 +1,9 @@
 # To add a new cell, type '# %%'
 # To add a new markdown cell, type '# %% [markdown]'
 # %%
-import matplotlib.pyplot as pyplot
 import numpy as np
-import os
 import pandas as pandas
-import sys
+import math
 
 
 # %%
@@ -16,12 +14,29 @@ def ler_dados():
     return data
 
 
+# %%
 def main_func():
     data = ler_dados()
     shape = data[0].shape
-    user_input = float(input("\n Frequencia do oscilador:  "))
+    freq = float(input("\n Frequencia do oscilador:  "))
     total_linhas = shape[0]
-    total_colunas = shape[1]
+    osciladorXX = np.zeros((total_linhas, 1))
+    osciladorYY = np.zeros((total_linhas, 1))
+    for i in range(total_linhas):
+        t = data[0][i]
+        tt = t[0]
+        osciladorXX[i] = math.sin(freq * tt)
+        osciladorYY[i] = math.cos(freq * tt)
+    data_temp = np.column_stack((data[0], osciladorXX))
+    data = np.column_stack((data_temp, osciladorYY))
+
+    data_pandas = pandas.DataFrame(data=data)
+
+    data_pandas.to_csv('kutta_auto.txt',
+                       index=False,
+                       header=False,
+                       sep=" ",
+                       float_format="%+.15f")
 
 
 # %%
