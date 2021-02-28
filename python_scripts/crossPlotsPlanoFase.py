@@ -59,13 +59,13 @@ def join(ax, files):
 
 
 # %%
-def gera_plot(files, hashname: str):
+def gera_plot(files, hashname: str, color_plot: str):
 
-    print(hashname)
+    #print(hashname)
     for crossPlot in files:
         variaveis_xy = []
         velEixo_xy = []
-        nomde_grafico = 'CrossPlot ' + crossPlot
+        nomde_grafico = hashname + '_' + crossPlot
         print(nomde_grafico)
         #separa os nomes ex: C1xdC3dt => ['C1','dC3dt']
         crossPlotSplit = crossPlot.split("x")
@@ -91,8 +91,7 @@ def gera_plot(files, hashname: str):
         # matplotlib plot
         fig, ax = pyplot.subplots(figsize=(10, 10))
 
-        # cross Plot
-        print(hashname)
+        # cross Plot plano fase
         data = np.load("{1:s}plano_fase_{0:s}.npz".format(
             variaveis_xy[0], hashname),
                        allow_pickle=True)
@@ -106,21 +105,45 @@ def gera_plot(files, hashname: str):
         args = tuple(data['args'])
         datay = args[velEixo_xy[1]]
         kwargs = data['kwargs'].item()
-        kwargs.update({'color': 'blue'})
+        kwargs.update({'color': color_plot})
         method(datax, datay, **kwargs)
 
         # saving file to load in another python file
-        np.savez("crossPlots\\" + nomde_grafico + '.npz',
+        np.savez("crossPlots\\" + nomde_grafico + '_planoFase_.npz',
                  method='plot',
                  args=(datax, datay),
                  kwargs=kwargs)
 
+        # cross Plot poincare
+        data = np.load("{1:s}_poincare_{0:s}.npz".format(
+            variaveis_xy[0], hashname),
+                       allow_pickle=True)
+        method = getattr(ax, data['method'].item())
+        args = tuple(data['args'])
+        datax_p = args[velEixo_xy[0]]
+        data = np.load("{1:s}_poincare_{0:s}.npz".format(
+            variaveis_xy[1], hashname),
+                       allow_pickle=True)
+        method = getattr(ax, data['method'].item())
+        args = tuple(data['args'])
+        datay_p = args[velEixo_xy[1]]
+        kwargs = data['kwargs'].item()
+        kwargs.update({'c': color_plot})
+        kwargs.update({'s': 100})
+        method(datax_p, datay_p, **kwargs)
+
+        # saving file to load in another python file
+        np.savez("crossPlots\\" + nomde_grafico + '_poincare_.npz',
+                 method='scatter',
+                 args=(datax_p, datay_p),
+                 kwargs=kwargs)
+
         pyplot.xlim(
-            min(datax) - 0.01 * abs(min(datax)),
-            max(datax) + 0.01 * abs(max(datax)))
+            min(datax) - 0.05 * abs(min(datax)),
+            max(datax) + 0.05 * abs(max(datax)))
         pyplot.ylim(
-            min(datay) - 0.01 * abs(min(datay)),
-            max(datay) + 0.01 * abs(max(datay)))
+            min(datay) - 0.05 * abs(min(datay)),
+            max(datay) + 0.05 * abs(max(datay)))
 
         if velEixo_xy[0] == 0:
             pyplot.xlabel(r'$%s/h$' % (variaveis_xy[0]))
@@ -144,6 +167,15 @@ def gera_plot(files, hashname: str):
 
 
 def main_func(ler=None):
+    # deleta arquivos
+    cwd = os.getcwd()
+    filelist = [f for f in os.listdir(cwd) if f.endswith(".png")]
+    for f in filelist:
+        os.remove(os.path.join(cwd, f))
+    filelist = [f for f in os.listdir(cwd) if f.endswith(".npz")]
+    for f in filelist:
+        os.remove(os.path.join(cwd, f))
+
     #verifica diretorio corrente para execucao atraves do .bat de dentro do diretorio crossPlots
     cwd = os.getcwd()
     if cwd.find("crossPlots"):
@@ -165,9 +197,13 @@ def main_func(ler=None):
         user_input = 'crossPlotsPlanoFase.json'
     arquivo_json = lerJson(user_input)
     nome_arquivos = arquivo_json["crossPlots"]
-    #hashname = arquivo_json["hashname"]
-    #print(nome_arquivos, hashname)
-    gera_plot(nome_arquivos, hashname)
+    # verifica se deseja plotar com cor especifica
+    color_plot = str(input("\nDigite cor para o plot:  "))
+    if color_plot == '' or color_plot == None:
+        color_plot = 'blue'
+    color_plot = color_plot.lower()
+
+    gera_plot(nome_arquivos, hashname, color_plot)
 
 
 # %%
