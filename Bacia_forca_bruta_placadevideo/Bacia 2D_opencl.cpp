@@ -403,7 +403,7 @@ void NewData(int argc, char** argv)
 	rewind(fdread);
 
 	/* Dimension doof space */
-	fscanf(fdread, "%d  %d\n", &PeriodoMaximo, &numMaxPeriodos);
+	fscanf(fdread, "%d  %d %lf\n", &PeriodoMaximo, &numMaxPeriodos, &criterioConvergencia);
 
 	/* Frequencia da forca excitadora, dados de amortecimentos e amplitudes da carga */
 	fscanf(fdread, "%lf\n", &Wf);
