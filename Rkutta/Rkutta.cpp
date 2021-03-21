@@ -48,21 +48,6 @@ static void Func(double *F, double *y, double t, double Parametro);
 int modo_leitura = 0;
 
 /*=========================  Energia =========================*/
-double Energia(double *q)
-{
-	double ener, MapleGenVar1;
-
-	MapleGenVar1 = 0.1630548083E-13 * pow(q[0], 11.0) + 0.1641490063E-12 * q[0] * q[0] * q[0] * q[0] * q[0] * q[0] * q[0] * q[0] * q[0] - 0.3018213435E-17 * pow(q[0], 11.0) * q[1] * q[1] +
-				   0.7982522165E-22 * pow(q[0], 28.0) + 0.2376379085E2 * q[0] * q[0] + 0.680810316E-15 * q[0] * q[0] * q[0] * q[0] * q[0] * q[0] * q[0] * q[0] * q[0] * q[1] * q[1] + 0.5392194389 * q[0] * q[0] * q[0] * q[0] - 0.2092179494E-8 * q[0] * q[0] * q[0] - 0.2746820957 * q[0] * q[0] * q[0] * q[0] * q[0] * q[0] +
-				   0.1934730471E-9 * q[0] * q[0] * q[0] * q[0] * q[0] - 0.4434130223E-10 * pow(q[0], 18.0) +
-				   0.4127131626E-8 * pow(q[0], 16.0) - 0.1038432528E-10 * q[0] * q[0] * q[0] * q[0] * q[0] * q[0] * q[0] + 0.3952637072E2 * q[1] * q[1] + 0.1804997472E-4 * pow(q[0], 12.0) + 0.2004146219E-1 * q[0] * q[0] * q[0] * q[0] * q[0] * q[0] * q[0] * q[0] - 0.7487117755E-3 * pow(q[0], 10.0) +
-				   0.3996304739E-12 * pow(q[0], 20.0) - 0.8635084537E-25 * pow(q[0], 23.0) +
-				   0.1158550705E-27 * pow(q[0], 25.0);
-	ener = MapleGenVar1 + 0.1968007156E-31 * pow(q[0], 27.0) - 0.2936197616E-14 * pow(q[0], 22.0) + 0.1582063466E-16 * pow(q[0], 24.0) - 0.5759667901E-13 * q[0] * q[0] * q[0] * q[0] * q[0] * q[0] * q[0] * q[1] * q[1] + 0.9073340007E-10 * q[0] * q[0] * q[0] * q[1] * q[1] - 0.3115906498E-6 * pow(q[0], 14.0) + 0.580287204E-12 * q[0] * q[0] * q[0] * q[0] * q[0] * q[1] * q[1] - 0.1494505046E-15 * pow(q[0], 13.0) - 0.1305366953E-16 * pow(q[0], 15.0) +
-		   0.2090200076E-8 * pow(q[0], 12.0) * q[1] * q[1] + 0.3673920006E-18 * pow(q[0], 17.0) - 0.428015317E-20 * pow(q[0], 19.0) - 0.129361099E-2 * q[0] * q[0] * q[0] * q[0] * q[0] * q[0] * q[1] * q[1] + 0.2642450569E-22 * pow(q[0], 21.0) + 0.4413792996E-4 * q[0] * q[0] * q[0] * q[0] * q[0] * q[0] * q[0] * q[0] * q[1] * q[1] - 0.5283133452E-19 * pow(q[0], 26.0) - 0.4819277147E-6 * pow(q[0], 10.0) * q[1] * q[1] + 0.138867939E-1 * q[0] * q[0] * q[0] * q[0] * q[1] * q[1] - 0.3066493493E-8 * q[0] * q[1] * q[1] + 0.12561619E1 * q[0] * q[0] * q[1] * q[1];
-
-	return (ener);
-}
 
 /* ===========================  Tempo  ===========================*/
 struct Tempo
@@ -230,7 +215,7 @@ static void Runge_Kutta(double *y)
 }
 
 /*===========================  MAIN  ===========================*/
-int main(void)
+int main(int argc, char** argv)
 {
 	double valor_condicao_inicial = 0;
 	int linha_poincare = 0;
@@ -246,14 +231,30 @@ int main(void)
 	printf("\t [6]: ... definicao das condicoes inicias dada pela leitura do arquivo bacia_results.txt\n");
 	printf("-------------------------------------------------------------\n");
 	printf(" Escolha uma opcao : ");
-	scanf("%d", &modo_leitura);
+	if (argc == 1)
+	{
+		scanf("%d", &modo_leitura);
+	}
+	else
+	{
+		//extrai de argv o argumento do modo de leitura das condicoes inicias
+		sscanf(argv[1], "%d", &modo_leitura);
+	}
 
 	NewData();
 
 	if (modo_leitura == 2)
 	{
 		printf("\n\n Entre com o valor da condicao inicial : ");
-		scanf("%lf", &valor_condicao_inicial);
+		if (argc > 2)
+		{
+			sscanf(argv[2], "%lf", &valor_condicao_inicial);
+			printf("%lf\n", valor_condicao_inicial);
+		}
+		else {
+			scanf("%lf", &valor_condicao_inicial);
+		}
+		
 		for (int id_eq = 0; id_eq < Nequ; id_eq++)
 		{
 			Xo[id_eq] = valor_condicao_inicial;
@@ -262,7 +263,14 @@ int main(void)
 	else if (modo_leitura == 3)
 	{
 		printf("\n\n Entre com o valor da linha a ser lida no arquivo poincare.txt : ");
-		scanf("%d", &linha_poincare);
+		if (argc > 2)
+		{
+			sscanf(argv[2], "%d", &linha_poincare);
+			printf("%d\n", linha_poincare);
+		}
+		else {
+			scanf("%d", &linha_poincare);
+		}
 
 		FILE *fd_poincare;
 		char str[256];		
@@ -302,7 +310,14 @@ int main(void)
 	else if (modo_leitura == 4)
 	{
 		printf("\n\n Entre com o valor da linha a ser lida no arquivo force_log.txt : ");
-		scanf("%d", &linha_force);
+		if (argc > 2)
+		{
+			sscanf(argv[2], "%d", &linha_force);
+			printf("%d\n", linha_force);
+		}
+		else {
+			scanf("%d", &linha_force);
+		}
 
 		FILE *fd_force;
 		char str[256];		
@@ -344,7 +359,14 @@ int main(void)
 	else if (modo_leitura == 5)
 	{
 		printf("\n\n Entre com o valor da linha a ser lida no arquivo force.txt : ");
-		scanf("%d", &linha_force);
+		if (argc > 2)
+		{
+			sscanf(argv[2], "%d", &linha_force);
+			printf("%d\n", linha_force);
+		}
+		else {
+			scanf("%d", &linha_force);
+		}
 
 		FILE *fd_force;
 		char str[256];
@@ -387,7 +409,14 @@ int main(void)
 	else if (modo_leitura == 6)
 	{
 	printf("\n\n Entre com o valor da linha a ser lida no arquivo bacia_results.txt : ");
-	scanf("%d", &linha_force);
+	if (argc > 2)
+	{
+		sscanf(argv[2], "%d", &linha_force);
+		printf("%d\n", linha_force);
+	}
+	else {
+		scanf("%d", &linha_force);
+	}
 
 	FILE *fd_bacia;
 	char str[256];
@@ -448,8 +477,11 @@ int main(void)
 	printf(" Periodo = %25.5lf \n", Tf);
 	printf(" Step    = %25.5lf \n", Step);
 
-	printf("\n\n PRESSIONE PARA SALVAR Kutta.dat E INICIAR O RUNGE KUTTA.....\n");
-	system("pause");
+	if (argc < 2)
+	{
+		printf("\n\n PRESSIONE PARA SALVAR Kutta.dat E INICIAR O RUNGE KUTTA.....\n");
+		system("pause");
+	}
 
 	//salva Kutta.dat
 	if (1) //sempre verdadeiro, fiz isso para declarar variaveis dentro deste escopo
