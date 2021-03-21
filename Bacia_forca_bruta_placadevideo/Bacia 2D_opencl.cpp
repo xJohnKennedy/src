@@ -389,6 +389,7 @@ int Runge_Kutta(double Step, int Num_passosPorStep, int Total_Periodos,
 void NewData(int argc, char** argv)
 {
 	FILE    *fdread;
+	char linha[512];
 	long int i;
 	double a, b, c, d;
 
@@ -403,7 +404,10 @@ void NewData(int argc, char** argv)
 	rewind(fdread);
 
 	/* Dimension doof space */
-	fscanf(fdread, "%d  %d %lf\n", &PeriodoMaximo, &numMaxPeriodos, &criterioConvergencia);
+	// primeiro le uma linha completa para depois separar em variaveis
+	// isto funciona como uma verificacao de erros, caso se esqueça de digitar algum parametro
+	fgets(linha, 512, fdread);
+	sscanf(linha, "%d  %d %lf\n", &PeriodoMaximo, &numMaxPeriodos, &criterioConvergencia);
 
 	/* Frequencia da forca excitadora, dados de amortecimentos e amplitudes da carga */
 	fscanf(fdread, "%lf\n", &Wf);
