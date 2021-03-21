@@ -14,7 +14,8 @@ if __name__ == "__main__":
             "     t = -1 plotar todos os pontos\n" + \
             "[4]: plotar [1],[2]\n"+\
             "[5]: plotar [1],[2],[3]\n" + \
-            "[6]: plotar bacia de atracao\n"
+            "[6]: plotar bacia de atracao\n" + \
+            "[7]: plotar bacia de atracao + [1],[2]\n"
 
         print(msg)
         user_input = str(input("\nExecutar:  "))
@@ -66,3 +67,5 @@ if __name__ == "__main__":
             os.system("pause")
         elif user_input == 6:
             BaciaAtracao.main_func()
+        elif user_input == 7:
+            BaciaAtracao.main_func(True)
