@@ -98,6 +98,7 @@ def gera_plot(files, hashname: str, color_plot: str):
         method = getattr(ax, data['method'].item())
         args = tuple(data['args'])
         datax = args[velEixo_xy[0]]
+        data.close()
         data = np.load("{1:s}plano_fase_{0:s}.npz".format(
             variaveis_xy[1], hashname),
                        allow_pickle=True)
@@ -105,6 +106,7 @@ def gera_plot(files, hashname: str, color_plot: str):
         args = tuple(data['args'])
         datay = args[velEixo_xy[1]]
         kwargs = data['kwargs'].item()
+        data.close()
         kwargs.update({'color': color_plot})
         method(datax, datay, **kwargs)
 
@@ -121,6 +123,7 @@ def gera_plot(files, hashname: str, color_plot: str):
         method = getattr(ax, data['method'].item())
         args = tuple(data['args'])
         datax_p = args[velEixo_xy[0]]
+        data.close()
         data = np.load("{1:s}_poincare_{0:s}.npz".format(
             variaveis_xy[1], hashname),
                        allow_pickle=True)
@@ -128,6 +131,7 @@ def gera_plot(files, hashname: str, color_plot: str):
         args = tuple(data['args'])
         datay_p = args[velEixo_xy[1]]
         kwargs = data['kwargs'].item()
+        data.close()
         kwargs.update({'c': color_plot})
         kwargs.update({'s': 100})
         method(datax_p, datay_p, **kwargs)
@@ -166,7 +170,7 @@ def gera_plot(files, hashname: str, color_plot: str):
         pyplot.close('all')
 
 
-def main_func(ler=None):
+def main_func(entrada_cmd=None, color_plot=None):
     # deleta arquivos
     cwd = os.getcwd()
     filelist = [f for f in os.listdir(cwd) if f.endswith(".png")]
@@ -192,13 +196,20 @@ def main_func(ler=None):
     if name != None:
         hashname = name.split("_PlanoFase_")
         hashname = hashname[0]
-    user_input = str(input("\nNome do arquivo (crossPlotsPlanoFase.json):  "))
+
+    user_input = None
+
+    if entrada_cmd != True:
+        user_input = str(
+            input("\nNome do arquivo (crossPlotsPlanoFase.json):  "))
+        # verifica se deseja plotar com cor especifica
+        color_plot = str(input("\nDigite cor para o plot:  "))
+
     if user_input == '' or user_input == None:
         user_input = 'crossPlotsPlanoFase.json'
     arquivo_json = lerJson(user_input)
     nome_arquivos = arquivo_json["crossPlots"]
-    # verifica se deseja plotar com cor especifica
-    color_plot = str(input("\nDigite cor para o plot:  "))
+
     if color_plot == '' or color_plot == None:
         color_plot = 'blue'
     color_plot = color_plot.lower()

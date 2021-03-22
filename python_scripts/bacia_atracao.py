@@ -53,7 +53,7 @@ def ler_dados():
 # %%
 # funcao gera e imprime grafico
 def gera_plot(path, data, total_linhas, total_colunas, correcao_frequencia, x1,
-              x2, y1, y2, n_div_x: int, n_div_y: int):
+              x2, y1, y2, n_div_x: int, n_div_y: int, plotar_plano_fase):
     import hashName
     pasta_hash: str = hashName.nome_hash(os.getcwd() + "\\" + path)
 
@@ -177,7 +177,7 @@ def gera_plot(path, data, total_linhas, total_colunas, correcao_frequencia, x1,
             z0[y_l, x_l] = norma
             indice += 1
         if flag_convergiu == True:
-            print("==> Nivel = {:f}\n".format(norma))
+            print("==> Nivel = {:f}                          \n".format(norma))
             if ArquivoAberto == False:
                 f = open(path + 'impBaciaLog_' + pasta_hash[0:12] + '.txt',
                          "w")
@@ -196,6 +196,37 @@ def gera_plot(path, data, total_linhas, total_colunas, correcao_frequencia, x1,
             np.savetxt(f, listaIndicesConvergidosImprimir, fmt='%.0f')
             f.write("\n\n")
             f.close()
+
+            if plotar_plano_fase == True:
+                import secao_de_poicare_plots as poincare
+                import plano_fase_plots as planoFase
+                import crossPlotsPlanoFase
+                import shutil
+
+                print("Executando runge kutta -> linha {0}\n".format(
+                    listaIndicesConvergidosImprimir[0]))
+                os.system("call ..\\..\\Rkutta.exe 6 {0}".format(
+                    listaIndicesConvergidosImprimir[0]))
+
+                #plota plano fase e poincare na pasta plots
+                poincare.main_func()
+                planoFase.main_func()
+                # copia pasta crossPlots para plots
+                diretorio_padrao = os.getcwd()
+                try:
+                    shutil.copytree(diretorio_padrao + "\\crossPlots",
+                                    diretorio_padrao + "\\plots\\crossPlots")
+                    os.chdir(diretorio_padrao + "\\plots\\crossPlots")
+                    crossPlotsPlanoFase.main_func(True, lista_cores[nivel])
+                    os.chdir(diretorio_padrao)
+                except:
+                    pass
+                # renomeia pasta plots
+                shutil.move(
+                    diretorio_padrao + "\\plots",
+                    diretorio_padrao + "\\plots_linha_{0}".format(
+                        listaIndicesConvergidosImprimir[0]))
+                pass
 
         #deleta os pontos proximos encontrados mas que nao convergiram da lista de pontos proximos
         pontosProximos = np.delete(pontosProximos, listaPontosExcluir, 0)
@@ -306,7 +337,7 @@ def verificaConfigPlotagemBacia():
     return x1, x2, y1, y2, numDiv_dx, numDiv_dy
 
 
-def main_func():
+def main_func(plotar_plano_fase=None):
     #solucao para erro recursivo quando executando a busca kd-tree em grandes matrizes
     #https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.KDTree.html#scipy.spatial.KDTree
     sys.setrecursionlimit(10000)
@@ -321,7 +352,7 @@ def main_func():
     total_linhas = shape[0]
     total_colunas = shape[1]
     gera_plot(path, data[0], total_linhas, total_colunas, correcao_frequencia,
-              x1, x2, y1, y2, numDiv_dx, numDiv_dy)
+              x1, x2, y1, y2, numDiv_dx, numDiv_dy, plotar_plano_fase)
 
 
 # %%

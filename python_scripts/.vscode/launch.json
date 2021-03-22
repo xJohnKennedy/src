@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "cwd": "D:\\D_Mestrado - Jonathas\\RESULTADOS NAO LINEARES\\RESULTADO 2\\modelocompleto_teste\\_bin"
+            "cwd": "D:\\D_Mestrado - Jonathas\\RESULTADOS NAO LINEARES\\RESULTADO 2\\modelo_3_1\\_bin\\basins_of_attraction\\bao 1.100 - gpu 256x256 - P=5000 - W1 x dW3dt - bacia init - 1"
         }
     ]
 }
