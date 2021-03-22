@@ -6,3 +6,10 @@
 /python_scripts/*.npz
 /python_scripts/*.svg
 /python_scripts/*.png
+/Bacia_forca_bruta/**
+/Bacia_forca_bruta_placadevideo/**
+/config/**
+/Forca_br/**
+/include/**
+/Rkutta/**
+premake5.lua
