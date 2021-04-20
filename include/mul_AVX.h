@@ -1,5 +1,7 @@
 #include <immintrin.h>
 #include <intrin.h>
+#include <windows.h>
+#include <VersionHelpers.h>
 
 
 /*
@@ -34,7 +36,8 @@ double kahanSum (double *x, int n)
 }
 */
 
-double multiplicacao(double *Vetor_ymm0, double  *Vetor_ymm1, double  *Vetor_ymm2, double  *Vetor_ymm3, int num_f)
+
+double multiplicacao_AVX(double *Vetor_ymm0, double  *Vetor_ymm1, double  *Vetor_ymm2, double  *Vetor_ymm3, int num_f)
 {
     __m256d result_final = { 0.0, 0.0, 0.0, 0.0};
     __m256d vec0, vec1, vec2, vec3, 
@@ -71,4 +74,61 @@ double multiplicacao(double *Vetor_ymm0, double  *Vetor_ymm1, double  *Vetor_ymm
     double *vetor_final = (double *)&resultado_soma;
 
     return vetor_final[0] + vetor_final[1];
+}
+
+double multiplicacao_SSE2(double *Vetor_xmm0, double  *Vetor_xmm1, double  *Vetor_xmm2, double  *Vetor_xmm3, int num_f)
+{
+	__m128d result_final = { 0.0, 0.0 };
+	__m128d result_final_temp1 = { 0.0, 0.0 };
+	__m128d result_final_temp2 = { 0.0, 0.0 };
+	__m128d vec0, vec1, vec2, vec3,
+		result_1, result_2, result_3;
+
+	for (int i = 0; i < num_f; i++)
+	{
+		vec0 = _mm_load_pd(Vetor_xmm0);
+		vec1 = _mm_load_pd(Vetor_xmm1);
+		vec2 = _mm_load_pd(Vetor_xmm2);
+		vec3 = _mm_load_pd(Vetor_xmm3);
+		result_1 = _mm_mul_pd(vec0, vec1);
+		result_2 = _mm_mul_pd(vec2, vec3);
+		result_3 = _mm_mul_pd(result_1, result_2);
+		result_final_temp1 = _mm_add_pd(result_3, result_final_temp1);
+
+		vec0 = _mm_load_pd(Vetor_xmm0 + 2);
+		vec1 = _mm_load_pd(Vetor_xmm1 + 2);
+		vec2 = _mm_load_pd(Vetor_xmm2 + 2);
+		vec3 = _mm_load_pd(Vetor_xmm3 + 2);
+		result_1 = _mm_mul_pd(vec0, vec1);
+		result_2 = _mm_mul_pd(vec2, vec3);
+		result_3 = _mm_mul_pd(result_1, result_2);
+		result_final_temp2 = _mm_add_pd(result_3, result_final_temp2);
+
+
+		// incremento dos poteiros em 4 devido ao AVX vetorizar em 256 bits = 32 bytes = 4 * sizeof(double)
+		Vetor_xmm0 += 4;
+		Vetor_xmm1 += 4;
+		Vetor_xmm2 += 4;
+		Vetor_xmm3 += 4;
+
+	}
+	__m128d resultado_soma = _mm_add_pd(result_final_temp1, result_final_temp2);
+
+	double *vetor_final = (double *)&resultado_soma;
+
+	return vetor_final[0] + vetor_final[1];
+}
+
+double multiplicacao(double *Vetor_ymm0, double  *Vetor_ymm1, double  *Vetor_ymm2, double  *Vetor_ymm3, int num_f)
+{
+	double resultado = 0;
+	if (IsWindows10OrGreater())
+	{
+		resultado = multiplicacao_AVX(Vetor_ymm0, Vetor_ymm1, Vetor_ymm2, Vetor_ymm3, num_f);
+	}
+	else if (IsWindows7OrGreater())
+	{
+		resultado = multiplicacao_SSE2(Vetor_ymm0, Vetor_ymm1, Vetor_ymm2, Vetor_ymm3, num_f);
+	}
+	return resultado;
 }
