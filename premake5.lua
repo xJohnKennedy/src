@@ -429,4 +429,5 @@ workspace "RUNGE_FORCA_BRUTA_BACIA"                   -- Solution Name
 	-- copia os arquivos, mas não sobrescreve se no destino o arquivo já existir visto que estes arquivos são de configuração independentes
 	ok, err = os.execute("Echo n|COPY /-y /v " .. SourceConfigDir .. "Kutta_header_config.h" .. " .\\_config_modelo\\")
 	ok, err = os.execute("Echo n|COPY /-y /v " .. SourceConfigDir .. "Nequ_config.h" .. " .\\_config_modelo\\")
+	ok, err = os.execute("Echo n|COPY /-y /v " .. SourceConfigDir .. "git_track.py" .. " .\\_config_modelo\\")
 
