@@ -36,15 +36,15 @@ workspace "RUNGE_FORCA_BRUTA_BACIA"                   -- Solution Name
 
 	-- see 'filter' in the wiki pages
 	filter "configurations:Debug"    
-		defines { "DEBUG" , "SOLUTION=DEBUG"}  
+		defines { "DEBUG" , "SOLUTION=\"DEBUG\""}  
 		symbols  "On"
 
 	filter "configurations:Release"  
-		defines { "NDEBUG", "SOLUTION=RELEASE" } 
+		defines { "NDEBUG", "SOLUTION=\"RELEASE\"" } 
 		optimize "Speed"		-- otimiza o projeto para o modo velocidade, no MSVC normalemnte é aplicado a flag /O2
 
 	filter "configurations:Release_Windows_7"  
-		defines { "NDEBUG", "SOLUTION=RELEASE_WINDOWS_7" } 
+		defines { "NDEBUG", "SOLUTION=\"RELEASE_WINDOWS_7\"" } 
 		optimize "Speed"		-- otimiza o projeto para o modo velocidade, no MSVC normalemnte é aplicado a flag /O2
 		staticruntime "On"		-- para rodar em windows 7 que ainda não foi atualizado e não possui o Universal CRT (UCRT)
 
