@@ -36,15 +36,15 @@ workspace "RUNGE_FORCA_BRUTA_BACIA"                   -- Solution Name
 
 	-- see 'filter' in the wiki pages
 	filter "configurations:Debug"    
-		defines { "DEBUG" }  
+		defines { "DEBUG" , "SOLUTION=DEBUG"}  
 		symbols  "On"
 
 	filter "configurations:Release"  
-		defines { "NDEBUG" } 
+		defines { "NDEBUG", "SOLUTION=RELEASE" } 
 		optimize "Speed"		-- otimiza o projeto para o modo velocidade, no MSVC normalemnte é aplicado a flag /O2
 
 	filter "configurations:Release_Windows_7"  
-		defines { "NDEBUG" } 
+		defines { "NDEBUG", "SOLUTION=RELEASE_WINDOWS_7" } 
 		optimize "Speed"		-- otimiza o projeto para o modo velocidade, no MSVC normalemnte é aplicado a flag /O2
 		staticruntime "On"		-- para rodar em windows 7 que ainda não foi atualizado e não possui o Universal CRT (UCRT)
 
@@ -138,13 +138,20 @@ workspace "RUNGE_FORCA_BRUTA_BACIA"                   -- Solution Name
 		}
 
 		-------------------------------------------
+		--------- [ PRE BUILD COMMANDS ] ---------
+		-------------------------------------------
+		configuration {"Release"} 
+			prebuildcommands { "start cmd /c python \"..\\..\\src\\config\\git_track.py\""}
+		configuration {"Release_Windows_7"} 
+			prebuildcommands { "start cmd /c python \"..\\..\\src\\config\\git_track.py\""}
+		-------------------------------------------
 		--------- [ POST BUILD COMMANDS ] ---------
 		-------------------------------------------
 
-		configuration "Release"
-			   postbuildcommands { "cd ..\\exe\\Release"}
-			   postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe .\\"}
-			   postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe ..\\..\\_bin\\"}
+		configuration {"Release"}
+			postbuildcommands { "cd ..\\exe\\Release"}
+			postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe .\\"}
+			postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe ..\\..\\_bin\\"}
 		
 	-------------------------------
 	-- [ PROJECT CONFIGURATION ] --
@@ -220,6 +227,13 @@ workspace "RUNGE_FORCA_BRUTA_BACIA"                   -- Solution Name
 		{
 		  -- add depedencies (libraries) here
 		}
+		-------------------------------------------
+		--------- [ PRE BUILD COMMANDS ] ---------
+		-------------------------------------------
+		configuration {"Release"} 
+			prebuildcommands { "start cmd /c python \"..\\..\\src\\config\\git_track.py\""}
+		configuration {"Release_Windows_7"} 
+			prebuildcommands { "start cmd /c python \"..\\..\\src\\config\\git_track.py\""}
 
 		-------------------------------------------
 		--------- [ POST BUILD COMMANDS ] ---------
@@ -306,6 +320,14 @@ workspace "RUNGE_FORCA_BRUTA_BACIA"                   -- Solution Name
 		}
 
 		-------------------------------------------
+		--------- [ PRE BUILD COMMANDS ] ---------
+		-------------------------------------------
+		configuration {"Release"} 
+			prebuildcommands { "start cmd /c python \"..\\..\\src\\config\\git_track.py\""}
+		configuration {"Release_Windows_7"} 
+			prebuildcommands { "start cmd /c python \"..\\..\\src\\config\\git_track.py\""}
+
+		-------------------------------------------
 		--------- [ POST BUILD COMMANDS ] ---------
 		-------------------------------------------
 
@@ -318,6 +340,7 @@ workspace "RUNGE_FORCA_BRUTA_BACIA"                   -- Solution Name
 	-- [ PROJECT CONFIGURATION ] --
 	------------------------------- 
 	project "Bacia_forca_bruta_placadevideo"
+		configurations { "Release", "Debug" }
 		kind "ConsoleApp" -- "WindowApp" removes console
 		language "C"
 		
@@ -406,6 +429,12 @@ workspace "RUNGE_FORCA_BRUTA_BACIA"                   -- Solution Name
 			 '$(TargetDir)D3DCompile_46.DLL' 
 		}
 
+		-------------------------------------------
+		--------- [ PRE BUILD COMMANDS ] ---------
+		-------------------------------------------
+		configuration {"Release"} 
+			prebuildcommands { "start cmd /c python \"..\\..\\src\\config\\git_track.py\""}
+
 
 		-------------------------------------------
 		--------- [ POST BUILD COMMANDS ] ---------
@@ -429,5 +458,5 @@ workspace "RUNGE_FORCA_BRUTA_BACIA"                   -- Solution Name
 	-- copia os arquivos, mas não sobrescreve se no destino o arquivo já existir visto que estes arquivos são de configuração independentes
 	ok, err = os.execute("Echo N|COPY /-y /v " .. SourceConfigDir .. "Kutta_header_config.h" .. " .\\_config_modelo\\")
 	ok, err = os.execute("Echo N|COPY /-y /v " .. SourceConfigDir .. "Nequ_config.h" .. " .\\_config_modelo\\")
-	ok, err = os.execute("Echo S|COPY /-y /v " .. SourceConfigDir .. "git_track.py" .. " .\\_config_modelo\\")
+	--ok, err = os.execute("Echo S|COPY /-y /v " .. SourceConfigDir .. "git_track.py" .. " .\\_config_modelo\\")
 
