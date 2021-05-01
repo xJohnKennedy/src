@@ -41,7 +41,8 @@ void print_header()
 	printf("\\n Compilacao: %s @ %s", __DATE__ , __TIME__);
 	printf("\\n Versao: %s\\n\\n", SOLUTION);
 
-}"""
+}
+"""
 f.write(code)
 
 f.write("#endif\n")
