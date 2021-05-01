@@ -33,5 +33,16 @@ f.write("#define __GIT_TRACK_H__\n")
 f.write("//\n//ARQUIVO GERADO AUTOMATICAMENTE por git_track.py\n//\n")
 f.write("#define GIT_TRACK_DATE " + "\"" + date_info + "\"\n")
 f.write("#define GIT_TRACK_HASH " + "\"" + hash_info.lower() + "\"\n")
+code = """#include <stdio.h>
+
+void print_header()
+{
+	printf("\\n Versao git: %s // %s", GIT_TRACK_HASH, GIT_TRACK_DATE);
+	printf("\\n Compilacao: %s @ %s", __DATE__ , __TIME__);
+	printf("\\n Versao: %s\\n\\n", SOLUTION);
+
+}"""
+f.write(code)
+
 f.write("#endif\n")
 f.close()
