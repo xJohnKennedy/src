@@ -36,6 +36,10 @@
 /******************Declaracoes principais ******************/
 #include "_config_modelo/Kutta_header_config.h"
 
+ /******************versionamento git ******************/
+#include "_config_modelo/git_track.h"
+
+
 double Wf, Tf;
 double eta__1, eta__2, PL;
 double PL_8C, PL_8S, PL_9C, PL_9S;
@@ -943,6 +947,8 @@ void CellsTrajec(void)
 /* ===========================  main  ===========================*/
 int main(int argc, char** argv)
 {
+	
+	print_header();
 
   printf("==============Calculo de Bacias de Atracao============\n");
   printf("=================Metodo  da Forca Bruta===============\n");
