@@ -152,6 +152,11 @@ workspace "RUNGE_FORCA_BRUTA_BACIA"                   -- Solution Name
 			postbuildcommands { "cd ..\\exe\\Release"}
 			postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe .\\"}
 			postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe ..\\..\\_bin\\"}
+
+		configuration {"Release_Windows_7"}
+			postbuildcommands { "cd ..\\exe\\Release_Windows_7"}
+			postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe .\\"}
+			postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe ..\\..\\_bin\\"}
 		
 	-------------------------------
 	-- [ PROJECT CONFIGURATION ] --
@@ -241,6 +246,11 @@ workspace "RUNGE_FORCA_BRUTA_BACIA"                   -- Solution Name
 
 		configuration "Release"
 			   postbuildcommands { "cd ..\\exe\\Release"}
+			   postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe .\\"}
+			   postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe ..\\..\\_bin\\"}
+
+		configuration "Release_Windows_7"
+			   postbuildcommands { "cd ..\\exe\\Release_Windows_7"}
 			   postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe .\\"}
 			   postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe ..\\..\\_bin\\"}
 	
@@ -333,6 +343,11 @@ workspace "RUNGE_FORCA_BRUTA_BACIA"                   -- Solution Name
 
 		configuration "Release"
 			   postbuildcommands { "cd ..\\exe\\Release"}
+			   postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe .\\"}
+			   postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe ..\\..\\_bin\\"}
+
+		configuration "Release_Windows_7"
+			   postbuildcommands { "cd ..\\exe\\Release_Windows_7"}
 			   postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe .\\"}
 			   postbuildcommands { "copy %{prj.name}\\%{prj.name}.exe ..\\..\\_bin\\"}
 	

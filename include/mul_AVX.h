@@ -122,7 +122,7 @@ double multiplicacao_SSE2(double *Vetor_xmm0, double  *Vetor_xmm1, double  *Veto
 double multiplicacao(double *Vetor_ymm0, double  *Vetor_ymm1, double  *Vetor_ymm2, double  *Vetor_ymm3, int num_f)
 {
 	double resultado = 0;
-	if (IsWindows10OrGreater())
+	if (IsWindows8OrGreater())
 	{
 		resultado = multiplicacao_AVX(Vetor_ymm0, Vetor_ymm1, Vetor_ymm2, Vetor_ymm3, num_f);
 	}

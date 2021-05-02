@@ -70,7 +70,7 @@ public:
 		fim = std::chrono::high_resolution_clock::now();
 		duracao = fim - inicio;
 
-		printf("\n->>Tempo de calculo do Runge Kutta : %f s\n", duracao);
+		printf("\n->>Tempo de calculo do Runge Kutta : %f s\n", duracao.count());
 	}
 };
 
