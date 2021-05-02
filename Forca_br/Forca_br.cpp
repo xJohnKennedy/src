@@ -48,7 +48,9 @@ FORCA BRUTA
 
 /***************  Definicao de numero de equacoes  ********************/
 #include "_config_modelo/Nequ_config.h"
-/**********************************************************************/
+
+ /******************versionamento git ******************/
+#include "_config_modelo/git_track.h"
 
 double  xo[Nequ], x[Nequ], x_old[Nequ], y_max[Nequ];
 double  Tf, Wf, Step;
@@ -166,6 +168,8 @@ void hora_atual()
 /*===========================  MAIN  ===========================*/
 void main(int argc, char** argv)
 {
+	print_header();
+
 	int k,i,j, ij, flag, periodo, retorno;
 	double alpha, derro;
 	double alpha_final;

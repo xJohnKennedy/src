@@ -34,6 +34,9 @@
  /******************Declaracoes principais ******************/
 #include "_config_modelo/Kutta_header_config.h"
 
+ /******************versionamento git ******************/
+#include "_config_modelo/git_track.h"
+
 double Wf, Gamma1, Xo[Nequ], Yo, Tf, fase;
 double NC1, NC2, Step, Tmax;
 int N, TimeDirection, Fluido;
@@ -217,6 +220,8 @@ static void Runge_Kutta(double *y)
 /*===========================  MAIN  ===========================*/
 int main(int argc, char** argv)
 {
+	print_header();
+
 	double valor_condicao_inicial = 0;
 	int linha_poincare = 0;
 	int linha_force = 0;
