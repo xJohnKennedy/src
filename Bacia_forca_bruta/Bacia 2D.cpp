@@ -345,7 +345,7 @@ void CellsTrajec_core( int const nome_thread, int const cell_inicio, int const c
 	//int const cell_fim = valor de busca da ultima celula no vetor q1 e q1p
 
 	// declaracao das variaveis locais
-	int i, j, retorno, Periodo, PeriodoBack, flag, flag_periodica;
+	int i, j, retorno = 0, Periodo, PeriodoBack, flag, flag_periodica;
 	int value, ij, Tempo;
 	double x[Nequ], y[Nequ], y_old[Nequ], xo[Nequ], derro, zo0atr, zo1atr;
 
