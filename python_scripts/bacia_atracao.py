@@ -61,19 +61,32 @@ def gera_plot(path, data, total_linhas, total_colunas, correcao_frequencia, x1,
     lista_cores = [
         "white", "blue", "yellow", "green", "red", "purple", "black"
     ]
+    lista_cores_invertida = lista_cores[::-1]
     lista_cores_indices = [0, 1, 2, 3, 4, 5, 6]
 
-    print(lista_cores, lista_cores_indices)
-    user_input = str(
-        input(
-            "\n Mudar indices da lista de cores?: \n ex= Digitar 0,1,2,3,5,4,6 troca o purple e o red \n Nova lista?: "
-        ))
-    if user_input != '':
-        nova_lista_cores = []
-        user_input = user_input.split(",")
-        for temp in user_input:
-            nova_lista_cores.append(lista_cores[int(temp)])
-        lista_cores = nova_lista_cores
+    lista_cores_OK = False
+    while lista_cores_OK == False:
+        print(lista_cores_invertida, lista_cores_indices[::-1])
+        user_input = str(
+            input(
+                "\n Mudar indices da lista de cores?: \n ex= Digitar cores na ordem de prioridade \n Nova lista?: "
+            ))
+        if user_input != '':
+            nova_lista_cores = []
+            user_input = user_input.split(",")
+            count_add = 0
+            for temp in user_input:
+                if temp in lista_cores_invertida:
+                    lista_cores_invertida.remove(temp)
+                else:
+                    count_add = count_add + 1
+                nova_lista_cores.append(temp.strip())
+            lista_cores_invertida = nova_lista_cores + lista_cores_invertida[
+                count_add:]
+        else:
+            lista_cores_OK = True
+            lista_cores_invertida.reverse()
+            lista_cores = lista_cores_invertida
 
     # calculo de dx e dy
     dx = abs((x2 - x1) / (n_div_x - 1))
@@ -177,7 +190,8 @@ def gera_plot(path, data, total_linhas, total_colunas, correcao_frequencia, x1,
             z0[y_l, x_l] = norma
             indice += 1
         if flag_convergiu == True:
-            print("==> Nivel = {:f}                          \n".format(norma))
+            print("==> Nivel = {:f}                              COR = {:s}\n".
+                  format(norma, lista_cores[nivel]))
             if ArquivoAberto == False:
                 f = open(path + 'impBaciaLog_' + pasta_hash[0:12] + '.txt',
                          "w")
