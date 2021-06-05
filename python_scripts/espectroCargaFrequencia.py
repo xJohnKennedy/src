@@ -57,9 +57,41 @@ def ler_dados(pontos):
 
 # %%
 # filtra dados
-def filtraTrechos(data):
+def filtraTrechos(data, pontos):
     data_del = []
+    indice_pontos = -1
     for data_i in data:
+        indice_pontos = indice_pontos + 1
+
+        #numero de pontos a verificar no arquivo
+        #le arquivo Forca.dat para extrair a numero de pontos
+        arquivo = open("..\\ponto %s\\Forca.dat" % (pontos[indice_pontos]),
+                       "r")
+        arq_lines = arquivo.readlines()
+        #trata os dados com o scanf
+        pattern = '%d\n'
+        num_pts_max_arquivo = scanf(pattern, arq_lines[2])[0]
+        arquivo.close()
+
+        i = -1
+        for data_linha in data_i:
+            i = i + 1
+            #extrai numero do primeiro passo
+            if i == 0:
+                passo_anterior = data_linha[0]
+            else:
+                passo_atual = data_linha[0]
+                #verifica se o passo atual não é maior que o passo anterior + 1
+                if passo_atual > passo_anterior + 1:
+                    print("erro no arquivo ponto %s\\force.txt => passo %s" %
+                          (pontos[indice_pontos], passo_atual))
+                    break
+                else:
+                    passo_anterior = passo_atual
+                pass
+        if passo_atual + 1 <= num_pts_max_arquivo:
+            print("erro no arquivo ponto %s\\force.txt => passo %s" %
+                  (pontos[indice_pontos], passo_atual))
         shape_data = data_i.shape
         colunas_deletar = slice(2, shape_data[1] - 1 - 1)
         data_del.append(np.delete(data_i, colunas_deletar, axis=1))
@@ -176,7 +208,7 @@ if __name__ == "__main__":
     pontos, palavraPath = stringParserPoints.SeparaString(pontos)
     path = cria_pasta_plots(palavraPath)
     data = ler_dados(pontos)
-    data = filtraTrechos(data)
+    data = filtraTrechos(data, pontos)
     data_plot_freq, data_plot_duracao_carga, data_plot_carga_inicial = geraDadosBarras(
         data, pontos)
     shape = data[0].shape
