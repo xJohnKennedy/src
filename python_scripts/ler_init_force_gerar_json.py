@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
     for i in range(tamanho_data):
         line = i + 1
-        namejobs_temp = "job " + pasta_name + str(i + 1)
+        namejobs_temp = "job " + pasta_name + str(cont) + "_" + str(i + 1)
         if line < tamanho_data:
             if data[0][i][1] != data[0][i + 1][1]:
                 namejobs.append(namejobs_temp)
