@@ -58,10 +58,21 @@ def join(ax, filename: str, data_plots):
         #caso o nome do arquivo possua .npz
         filename = filename.split(".")
         config_plot = data_plots[filename[0]]
+        print(config_plot)
         for i in config_plot:
             kwargs.update({i: config_plot[i]})
     except:
+        try:
+            # se nao existir uma configuracao especifica para o plot, verifica se existe
+            # uma configuracao para todos os plots
+            config_plot = data_plots["all"]
+            print(config_plot)
+            for i in config_plot:
+                kwargs.update({i: config_plot[i]})
+        except:
+            pass
         pass
+
     method(*args, **kwargs)
 
 

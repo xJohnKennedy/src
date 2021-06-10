@@ -19,7 +19,7 @@
         }
     },
     "LimitePlots": {
-        "_desc_": "usar um campo vazio para descrever se nao quer impor limite",
+        "_desc_": "usar um campo com aspas duplas para descrever se nao quer impor limite",
         "lim_x_menor": 1.0,
         "lim_x_maior": 1.0,
         "lim_y_menor": 1.0,
