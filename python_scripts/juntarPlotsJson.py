@@ -46,11 +46,11 @@ def lerJson(nomeDoArquivo: str):
 
 # %%
 #https://stackoverflow.com/questions/48912527/how-to-join-two-matplotlib-figures
-def join(ax, filename: str, data_plots):
+def join(ax, filename: str, data_plots, axins):
     data = carrega_plot(filename)
 
     method = data['method'].item()
-    method = getattr(ax, method)
+    tipoPlot = getattr(ax, method)
     args = tuple(data['args'])
     kwargs = data['kwargs'].item()
     #configuracao do plot de acordo com os dados passados pelo arquivo json
@@ -73,7 +73,12 @@ def join(ax, filename: str, data_plots):
             pass
         pass
 
-    method(*args, **kwargs)
+    tipoPlot(*args, **kwargs)
+    if axins != None:
+        tipoPlot = getattr(axins, method)
+        #print(tipoPlot)
+        tipoPlot(*args, **kwargs)
+        pass
 
 
 def carrega_plot(nome):
@@ -101,9 +106,19 @@ def gera_plot(files, data_plots):
     # matplotlib plot
     fig, ax = pyplot.subplots(figsize=(10, 10))
 
+    #plot com zoom
+    axins = None
+    try:
+        if data_plots["PlotComZoom"]["plotar"] == True:
+            plt = data_plots["PlotComZoom"]
+            axins = ax.inset_axes([plt["x0"], plt["y0"], plt["dx"], plt["dy"]])
+            #print(axins)
+    except:
+        pass
+
     # funcao para juntar os plots
     for nomeArquivo in files:
-        join(ax, nomeArquivo, data_plots)
+        join(ax, nomeArquivo, data_plots, axins)
 
     # plota linha horizontal
     comandos = data_plots["LinhaVertical"]
@@ -127,6 +142,33 @@ def gera_plot(files, data_plots):
         pyplot.ylim(limites[2], limites[3])
     except:
         pass
+
+    # limite dos plots PlotComZoom
+    if axins != None:
+        try:
+            lista = [
+                "lim_x_menor", "lim_x_maior", "lim_y_menor", "lim_y_maior"
+            ]
+            limites = []
+            comandos = data_plots["PlotComZoom"]
+            for i in lista:
+                cm = comandos.pop(i, None)
+                if cm != None and cm != "":
+                    limites.append(float(cm))
+                else:
+                    limites.append(None)
+                    pass
+
+            axins.set_xlim(limites[0], limites[1])
+            axins.set_ylim(limites[2], limites[3])
+            for tick in axins.get_xticklabels():
+                tick.set_fontsize(comandos["tamanhoFonte"])
+            for tick in axins.get_yticklabels():
+                tick.set_fontsize(comandos["tamanhoFonte"])
+
+            ax.indicate_inset_zoom(axins)
+        except:
+            pass
 
     pyplot.ylabel(data_plots["nomeEixoY"])
     pyplot.xlabel(data_plots["nomeEixoX"])
